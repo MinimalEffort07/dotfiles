@@ -24,9 +24,6 @@ set expandtab
 " Highlight search results
 set hlsearch
 
-" Change vim dir when enter new buffer
-set autochdir
-
 " Let clangd fully control code completion
 let g:ycm_clangd_uses_ycmd_caching = 0
 
@@ -95,17 +92,26 @@ nnoremap <silent> <CR> :let @/ = ""<CR>
 " Don't Jump to the next instance on use of '*'
 nnoremap <silent> * :keepjumps normal! mi*`i<CR>
 
-" Open a terminal in a new tab
-nnoremap tt :let $tdir=expand('%:p:h')<CR>:tabe<CR>:terminal<CR>i<CR>cd $tdir<CR>clear<CR>
+" Open a terminal in vertically split pane
+nnoremap tt :let $tdir=expand('%:p:h')<CR>:vsplit<CR>:terminal<CR>i<CR>cd $tdir<CR>clear<CR>
 
-" Move back one tab
-nnoremap <C-b> :tabp<CR>
+" Open a terminal in horizontally split pane
+nnoremap tw :let $tdir=expand('%:p:h')<CR>:split<CR>:terminal<CR>i<CR>cd $tdir<CR>clear<CR>
 
-" Move forward one tab
-nnoremap <C-n> :tabn<CR>
+" Move backward a split
+nnoremap <C-b> <ESC><CR>wW
+
+" Move forward a split
+nnoremap <C-n> <ESC><CR>ww
 
 " Start the command to open a new tab
 nnoremap <C-t> :tabe
+
+" Start the command to open a new vsplit
+nnoremap <C-i> :vsplit
+
+" Start the command to open a new split
+nnoremap <C-o> :split
 
 " Copy highlighted term to global clipboard
 nnoremap <C-c> *gn"*y:let @/ = ""<CR>
