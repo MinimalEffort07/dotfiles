@@ -1,38 +1,37 @@
 #!/usr/bin/env python3
+"""
+Install And Setup Config Files
+"""
 
-# TODO:
-#    - Vim Dictionary
-
-import argparse 
+import argparse
 import subprocess
 import re
 import tempfile
 
 from platform import platform
 from shutil import (
-        copystat,
-        copy,
-        move,
-        which,
+    copystat,
+    copy,
+    move,
+    which,
 )
 
 from os import (
-        environ,
-        path,
-        makedirs,
-        symlink,
-        remove,
+    environ,
+    makedirs,
+    symlink,
+    remove,
 )
 
 from os.path import (
-        dirname,
-        abspath,
-        exists,
+    dirname,
+    abspath,
+    exists,
 )
 
 from colorama import (
-        Fore,
-        Style,
+    Fore,
+    Style,
 )
 
 print("""
@@ -43,30 +42,41 @@ print("""
 ██╗██╔╝   ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║
 ╚═╝╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝""")
 
+
 def print_info(text):
+    """Print Info Style Message"""
     print(f"[{Fore.LIGHTBLUE_EX}INFO{Style.RESET_ALL}] {text}")
 
+
 def print_warn(text):
+    """Print Warn Style Message"""
     print(f"[{Fore.YELLOW}WARN{Style.RESET_ALL}] {text}")
 
+
 def print_err(text):
+    """Print Error Style Message"""
     print(f"[{Fore.RED}ERROR{Style.RESET_ALL}] {text}")
 
+
 def print_headers(text):
+    """Print Header Style Message"""
     print(f"[{Fore.GREEN}SECTION{Style.RESET_ALL}] {text}")
 
+
 def style_path(text) -> str:
-    return f'{Fore.GREEN}{text}{Style.RESET_ALL}'
+    """Stylize Path Strings"""
+    return f"{Fore.GREEN}{text}{Style.RESET_ALL}"
+
 
 def sed_inplace(filename, pattern, repl) -> int:
-    '''
+    """
     Perform the pure-Python equivalent of in-place `sed` substitution: e.g.,
     `sed -i -e 's/'${pattern}'/'${repl}' "${filename}"`.
-    '''
+    """
     try:
         pattern_compiled = re.compile(pattern)
-        
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
             with open(filename) as src_file:
                 for line in src_file:
                     tmp_file.write(pattern_compiled.sub(repl, line))
@@ -77,6 +87,7 @@ def sed_inplace(filename, pattern, repl) -> int:
         return 1
 
     return 0
+
 
 description = f"""
 Sets up Linux/MacOS machine with preferred software and configuration by:
@@ -108,21 +119,27 @@ Sets up Linux/MacOS machine with preferred software and configuration by:
     ...
 """
 
-parser = argparse.ArgumentParser(prog='dotfiles', 
-                                 description=description,
-                                 formatter_class=argparse.RawTextHelpFormatter)
+parser = argparse.ArgumentParser(
+    prog="dotfiles",
+    description=description,
+    formatter_class=argparse.RawTextHelpFormatter,
+)
 
-parser.add_argument('--skip-install',
-                    action='store_true',
-                    required=False,
-                    dest="skip_install",
-                    help='Skips trying to install prerequisite software')
+parser.add_argument(
+    "--skip-install",
+    action="store_true",
+    required=False,
+    dest="skip_install",
+    help="Skips trying to install prerequisite software",
+)
 
-parser.add_argument('-f',
-                    action='store_true',
-                    required=False,
-                    dest="force_sym_create",
-                    help='Backs up existing symlinks and creates new ones')
+parser.add_argument(
+    "-f",
+    action="store_true",
+    required=False,
+    dest="force_sym_create",
+    help="Backs up existing symlinks and creates new ones",
+)
 
 args = parser.parse_args()
 
@@ -147,67 +164,90 @@ print_info(f"Using '{PACKAGE_MANAGER}' Package Manager")
 print_headers(" [ Setting Up Environment Variables ] ")
 
 environ["DOTFILES"] = dirname(abspath(__file__))
-HOME_DIR = environ["HOME"] 
+HOME_DIR = environ["HOME"]
 
 if not environ["DOTFILES"]:
     print_err("Failed To Set $DOTFILES Environment Variable")
     exit(1)
 else:
-    print_info(f'Set $DOTFILES Environment Variable To: \"{style_path(environ["DOTFILES"])}\"')
+    print_info(
+        f'Set $DOTFILES Environment Variable To: "{style_path(environ["DOTFILES"])}"'
+    )
 
-# This updates the 'export DOTFILES=/path/to/dotfiles/repo/ with its new 
+# This updates the 'export DOTFILES=/path/to/dotfiles/repo/ with its new
 # location on this machine.
-sed = sed_inplace(f'{environ["DOTFILES"]}/zshrc', 'DOTFILES=.*', f'DOTFILES=\"{environ["DOTFILES"]}\"')
+sed = sed_inplace(
+    f'{environ["DOTFILES"]}/zshrc', "DOTFILES=.*", f'DOTFILES="{environ["DOTFILES"]}"'
+)
 
 if sed:
-    print_err("Failed To Perform SED Substitution Of DOTFILES Environment Variable\n\n"
-              + f"\t{sed}")
+    print_err(
+        "Failed To Perform SED Substitution Of DOTFILES Environment Variable\n\n"
+        + f"\t{sed}"
+    )
     exit(sed)
 else:
-    print_info(f'Updates $DOTFILES Environment Variable In .zshrc')
+    print_info(f"Updates $DOTFILES Environment Variable In .zshrc")
 
 # [ SETUP PACKAGE MANAGER ]
 
 if not args.skip_install:
-    # If mac and brew isn't installed, install it. 
-    if OS == "mac" and not which('brew'):
+    # If mac and brew isn't installed, install it.
+    if OS == "mac" and not which("brew"):
         print_headers(" [ Setting Up Package Manager ] ")
-        print_warn('Couldn\'t find Homebrew, Attempting To Install Homebrew')
+        print_warn("Couldn't find Homebrew, Attempting To Install Homebrew")
         homebrew = subprocess.run(
             [
-                '/bin/bash',
-                '-c',
-                '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+                "/bin/bash",
+                "-c",
+                (
+                    '"$(curl -fsSL'
+                    ' https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+                ),
             ],
-            capture_output=True)
-        
+            capture_output=True,
+        )
+
         if homebrew.returncode:
-            print_err(f"Failed To Install Homebrew\n\n\t{homebrew.stderr.decode('utf-8')}")
+            print_err(
+                f"Failed To Install Homebrew\n\n\t{homebrew.stderr.decode('utf-8')}"
+            )
             exit(homebrew.returncode)
         else:
             print_info(f"Installed Homebrew")
 
 # [ INSTALLING DEPENDENCIES AS PACKAGES ]
-#   Dependencies are in the format of: 
+#   Dependencies are in the format of:
 #       (name_of_executable,
 #        name_of_package_it_resides_in or None,
 #        os_not_to_install_on or None,
-#        install_command_as_list_for_sub_process_or_none_defaulting_to_os_package_manager) 
+#        install_command_as_list_for_sub_process_or_none_defaulting_to_os_package_manager)
 #
 #       e.g. (nvim, neovim, None, None) or (i3, None, mac, None)
 #
 
-DEPENDENCIES = [ 
-    ("zsh", None, None, None), 
+DEPENDENCIES = [
+    ("zsh", None, None, None),
     ("nvim", "neovim", None, None),
     ("i3", None, "mac", None),
-    ("vim-plug", None, None, ['curl', '-fL', "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim", '-o',f"{environ['HOME']}/.local/share/nvim/site/autoload/plug.vim", '--create-dirs'])
+    (
+        "vim-plug",
+        None,
+        None,
+        [
+            "curl",
+            "-fL",
+            "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim",
+            "-o",
+            f"{environ['HOME']}/.local/share/nvim/site/autoload/plug.vim",
+            "--create-dirs",
+        ],
+    ),
 ]
 
 if not args.skip_install:
     print_headers(" [ Installing Dependencies ] ")
-    for (executable, package, bad_os, command) in DEPENDENCIES:
-
+    for executable, package, bad_os, command in DEPENDENCIES:
         install_obj = executable if not package else package
 
         if bad_os == OS:
@@ -222,22 +262,22 @@ if not args.skip_install:
             print_info(f"Command Was Provided For {install_obj}, Executing Command")
             cmd = subprocess.run(command, capture_output=True)
             if cmd.returncode:
-                print_err(f"Failed To Install {install_obj}\n\n\t{cmd.stderr.decode('utf-8')}")
+                print_err(
+                    f"Failed To Install {install_obj}\n\n\t{cmd.stderr.decode('utf-8')}"
+                )
                 exit(cmd.returncode)
             continue
 
         print_warn(f"{executable} Was Not Found.. Attempting To Install {install_obj}")
 
         pkg = subprocess.run(
-            [
-                f'{PACKAGE_MANAGER}',
-                'install',
-                f'{install_obj}'
-            ],
-            capture_output=True)
+            [f"{PACKAGE_MANAGER}", "install", f"{install_obj}"], capture_output=True
+        )
 
         if pkg.returncode:
-            print_err(f"Failed To Install {install_obj}\n\n\t{pkg.stderr.decode('utf-8')}")
+            print_err(
+                f"Failed To Install {install_obj}\n\n\t{pkg.stderr.decode('utf-8')}"
+            )
             exit(pkg.returncode)
         else:
             print_info(f"Installed {install_obj}")
@@ -246,66 +286,90 @@ if not args.skip_install:
 
 print_headers(" [ Creating Required Configuration Directories ] ")
 
-#   Configuration directories are in the format of: 
-#       (directory_path, os_not_to_create_on or None) 
+#   Configuration directories are in the format of:
+#       (directory_path, os_not_to_create_on or None)
 #
 #       e.g. ("~/.config/nvim", None) or ("/root/.config/i3", mac)
 
-CONFIG_DIRS = [ (f"{HOME_DIR}/.config/nvim/", None),
-                ("/root/.config/nvim/", "mac"),
-                (f"{HOME_DIR}/.config/i3/", "mac") ]
+CONFIG_DIRS = [
+    (f"{HOME_DIR}/.config/nvim/", None),
+    ("/root/.config/nvim/", "mac"),
+    (f"{HOME_DIR}/.config/i3/", "mac"),
+]
 
-for (config_dir, bad_os) in CONFIG_DIRS:
+for config_dir, bad_os in CONFIG_DIRS:
     if bad_os == OS:
-        print_warn(f"Not Creating Directory: \"{style_path(config_dir)}\" on {OS.upper()}")
+        print_warn(
+            f'Not Creating Directory: "{style_path(config_dir)}" on {OS.upper()}'
+        )
         continue
 
     try:
         mkdir = makedirs(config_dir)
-        print_info(f"Created Directory: \"{style_path(config_dir)}\"")
+        print_info(f'Created Directory: "{style_path(config_dir)}"')
     except FileExistsError:
-        print_warn(f"Attempted To Make Directory: \"{style_path(config_dir)}\" But It Already Exists")
+        print_warn(
+            f'Attempted To Make Directory: "{style_path(config_dir)}" But It Already'
+            " Exists"
+        )
 
 # [ CREATING SYMLINKS ]
 
 print_headers(" [ Creating Configuration File Symlinks ] ")
 
-#   Symlinks are in the format of: 
-#       (source, destination, os_not_to_create_on) 
+#   Symlinks are in the format of:
+#       (source, destination, os_not_to_create_on)
 #
 #   NOTE: That all source paths will have the value of $DOTFILES prepended to it
-#       e.g. ("init.vim", "~/.config/nvim", None) or 
+#       e.g. ("init.vim", "~/.config/nvim", None) or
 #            ("init.vim", "/root/.config/nvim", mac)
 
-SYMLINKS = [ 
-    ("init.vim", f"{HOME_DIR}/.config/nvim/init.vim", None),    # USER init.vim
-    ("init.vim", "/root/.config/nvim/init.vim", "mac"),         # ROOT init.vim
-    ("i3_config", f"{HOME_DIR}/.config/i3/config", "mac"),      # i3 config 
-    ("zshrc", f"{HOME_DIR}/.zshrc", None),                      # zshrc 
+SYMLINKS = [
+    ("init.vim", f"{HOME_DIR}/.config/nvim/init.vim", None),  # USER init.vim
+    ("init.vim", "/root/.config/nvim/init.vim", "mac"),       # ROOT init.vim
+    ("i3_config", f"{HOME_DIR}/.config/i3/config", "mac"),    # i3 config
+    ("zshrc", f"{HOME_DIR}/.zshrc", None),                    # zshrc
 ]
 
-BACKUP_SUFFIX = ".dotfiles_bak"
+BACKUP_SUFFIX = ".dotfiles.bak"
 
-for (src, dest, bad_os) in SYMLINKS:
-
+for src, dest, bad_os in SYMLINKS:
     if bad_os == OS:
-        print_warn(f"Not Creating Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\" on {OS.upper()}")
+        print_warn(
+            "Not Creating Symlink:"
+            f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\" on"
+            f" {OS.upper()}"
+        )
         continue
-    
+
     try:
-        print_info(f"Attempting To Create Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
+        print_info(
+            "Attempting To Create Symlink:"
+            f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\""
+        )
         symlink(abspath(src), abspath(dest))
     except FileExistsError:
         if not args.force_sym_create:
-            print_err(f"Couldn't Create Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
+            print_err(
+                "Couldn't Create Symlink:"
+                f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\""
+            )
             exit(1)
 
-        if exists(dest+BACKUP_SUFFIX):
-            print_warn(f"Found Existing Backup File At: \"{style_path(dest+BACKUP_SUFFIX)}\", Removing It..")
-            remove(dest+BACKUP_SUFFIX)
+        if exists(abspath(dest + BACKUP_SUFFIX)):
+            print_warn(
+                f'Found Existing Backup File At: "{style_path(dest+BACKUP_SUFFIX)}",'
+                " Removing It.."
+            )
+            remove(dest + BACKUP_SUFFIX)
 
-        print_info(f"Creating New Backup File At: \"{style_path(dest+BACKUP_SUFFIX)}\"")
-        copy(abspath(dest), abspath(dest+BACKUP_SUFFIX))
+        print_info(f'Creating New Backup File At: "{style_path(dest+BACKUP_SUFFIX)}"')
+
+        copy(abspath(dest), abspath(dest + BACKUP_SUFFIX), follow_symlinks=False)
+
         remove(abspath(dest))
         symlink(abspath(src), abspath(dest))
-        print_info(f"Created Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
+        print_info(
+            "Created Symlink:"
+            f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\""
+        )
