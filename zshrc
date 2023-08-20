@@ -56,6 +56,7 @@ export TERM=xterm-256color
 export PAGER=less
 export EDITOR=nvim
 export DOTFILES="/Users/emmanuelchristianos/projects/minimaleffort/dotfiles"
+#export PATH="/usr/local/opt/binutils/bin:$PATH"
 
 # Aliases
 alias zshrc="vim $DOTFILES/zshrc"
@@ -90,6 +91,8 @@ alias vi="nvim"
 alias vim="nvim"
 
 alias gr="grep -inRI --color"
+
+alias sed="gsed"
 
 alias g="git"
 alias gst="git status"

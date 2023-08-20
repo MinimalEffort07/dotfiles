@@ -28,8 +28,12 @@ function print_section() {
     echo -e "[${GREEN}SECTION${RES}] ----- ${GREEN}${@}${RES} -----"
 }
 
+function minimise_path() {
+    sed s@${HOME}@~@g <<< "$1"
+}
+
 function style_path() {
-    echo -e "${BRIGHT_BLACK}$@${RES}"
+    echo -e ${BRIGHT_BLACK}$(minimise_path "$@")${RES}
 }
 
 function emphasize_text() {
@@ -97,26 +101,11 @@ function create_syms() {
         print_info "Attempting to create symlink,"\
             "$(style_path ${symarr[1]}) $(style_path '->') $(style_path ${symarr[0]})"
 
-        if sudo test -f "${symarr[1]}"; then
+        if sudo [ -f "${symarr[1]}" ] && sudo [ ! -L "${symarr[1]}" ]; then
 
             print_warn "....$(style_path ${symarr[1]}) already exists but is"\
                        "not a symlink. Attempting to back it up now"
                                    
-            # Remove existing backup file if it exists
-            if sudo test -f "${symarr[1]}.dotfiles.bak"; then
-                print_info "....Found existing backup. Attempting to delete it."
-                if rm "${symarr[1]}.dotfiles.bak" &>/dev/null; then
-                    print_info "....Deleted existing backup"
-                elif sudo rm "${symarr[1]}.dotfiles.bak" &>/dev/null; then
-                    print_warn "....Deleted existing backup. Required sudo"
-                else 
-                    print_warn "....Failed to delete existing backup. "\
-                               "Not serious issue, you may want to manually "\
-                               "delete the backup "\
-                               "$(style_path ${symarr[1]}.dotfiles.bak)"
-                fi
-            fi
-            
             # Attempting backup of non symlink configuration files
             if mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then 
                 print_info "....$(style_path ${symarr[1]}) Successfully backed up to"\
@@ -130,7 +119,7 @@ function create_syms() {
         fi
         
         # Attempting to remove existing destination file
-        if sudo test -e "${symarr[1]}"; then
+        if sudo test -e ${symarr[1]}; then
             print_info "....Attempting to remove old $(style_path ${symarr[1]})"
             if rm "${symarr[1]}" &>/dev/null; then
                 print_info "....Successfully removed $(style_path ${symarr[1]})"
@@ -148,6 +137,7 @@ function create_syms() {
             print_warn "....Successfully created symlink. Required sudo"
         else 
             print_err "....Failed to create symlink"
+            exit 1
         fi
     done
 }
@@ -234,19 +224,7 @@ function main() {
 
     print_info "OS is: $(highlight_text ${OS})"
     print_info "Using $(highlight_text ${PCKMAN}) package manager"
-
-    print_section "Setting up DOTFILES Environment Variable"
-export DOTFILES="$(pwd)"
-    print_info "DOTFILES=$(style_path ${DOTFILES})"
-    print_info "Attempting to update DOTFILES variable in zshrc"
-
-    if sed -E -i.dotfiles.bak s@DOTFILES=.\*@DOTFILES=\"${DOTFILES}\"@g zshrc; then
-        print_info "Successfully updated DOTFILES environment variable in zshrc"
-    else
-        print_err "Failed to updated DOTFILES environment variable in zshrc"
-        exit 1
-    fi 
-
+    
     # Install Homebrew if on MacOS and It isn't already installed
     # -z True if length of string is 0.
 
@@ -264,7 +242,7 @@ export DOTFILES="$(pwd)"
 
     print_section "Installing Dependencies"
 
-    local deps_mac_only=("coreutils")
+    local deps_mac_only=("coreutils" "binutils" "gnu-sed")
     local deps_linux_only=("i3")
     local deps_agnostic=("curl" "zsh" "neovim" "pip")
     
@@ -280,6 +258,66 @@ export DOTFILES="$(pwd)"
         print_info "$(emphasize_text Installing Linux Only Dependencies)"
         install_deps ${deps_linux_only[@]}
     fi
+    
+    # Installing Github Repos to be installed in /opt
+    print_section "Cloning Repositories"
+    local repos_mac_only=()
+    local repos_arm_only=()
+    local repos_intel_only=()
+    local repos_linux_only=()
+    local repos_agnostic=()
+    
+    if test -n "$repos_agnostic"; then
+        print_info "$(emphasize_text Cloning Platform Agnostic Repositories)"
+        clone_repos "${repos_agnostic[@]}"
+    fi
+
+    if test "$OS" = "MacOS"; then
+        if test -n "$repos_mac_only"; then
+            print_info "$(emphasize_text Cloning Mac Only Repositories)"
+            clone_repos "${repos_mac_only[@]}"
+        fi
+        
+        if [ -n "$ARM" ] && [ -n "$repos_arm_only" ]; then
+            print_info "$(emphasize_text Cloning ARM Mac Only Repositories)"
+            clone_repos "${repos_arm_only[@]}"
+        elif [ -z "$ARM" ] && [ -n "$repos_intel_only" ]; then
+            print_info "$(emphasize_text Cloning Intel Mac Only Repositories)"
+            clone_repos "${repos_intel_only[@]}"
+        fi
+
+    else
+        if test -n "$repos_linux_only"; then
+            print_info "$(emphasize_text Cloning Linux Only Repositories)"
+            clone_repos "${repos_linux_only[@]}"
+        fi
+    fi
+
+    print_section "Executing Custom Commands"
+
+    # Installing GEF
+    if test -n "$ARM"; then
+        print_info "Attempting to install GEF; This may take a minute"
+        if bash -c "$(curl -fsSL https://gef.blah.cat/sh)"; then
+            print_info "Successfully installed GEF"
+        else 
+            print_err "Failed to install GEF, Aborting"
+            exit 1
+        fi
+    fi
+
+    print_section "Setting up DOTFILES Environment Variable"
+
+    export DOTFILES="$(pwd)"
+    print_info "DOTFILES=$(style_path ${DOTFILES})"
+    print_info "Attempting to update DOTFILES variable in zshrc"
+
+    if sed -E -i.dotfiles.bak s@DOTFILES=.\*@DOTFILES=\"${DOTFILES}\"@g "${DOTFILES}/zshrc"; then
+        print_info "Successfully updated DOTFILES environment variable in zshrc"
+    else
+        print_err "Failed to updated DOTFILES environment variable in zshrc"
+        exit 1
+    fi 
 
     print_section "Creating Directories"
 
@@ -325,52 +363,6 @@ export DOTFILES="$(pwd)"
         create_syms "${syms_linux_only[@]}"
     fi
 
-    # Installing Github Repos to be installed in /opt
-    print_section "Cloning Repositories"
-    local repos_mac_only=()
-    local repos_arm_only=()
-    local repos_intel_only=("https://github.com/pwndbg/pwndbg.git")
-    local repos_linux_only=("https://github.com/pwndbg/pwndbg.git")
-    local repos_agnostic=()
-    
-    if test -n "$repos_agnostic"; then
-        print_info "$(emphasize_text Cloning Platform Agnostic Repositories)"
-        clone_repos "${repos_agnostic[@]}"
-    fi
-
-    if test "$OS" = "MacOS"; then
-        if test -n "$repos_mac_only"; then
-            print_info "$(emphasize_text Cloning Mac Only Repositories)"
-            clone_repos "${repos_mac_only[@]}"
-        fi
-        
-        if [ -n "$ARM" ] && [ -n "$repos_arm_only" ]; then
-            print_info "$(emphasize_text Cloning ARM Mac Only Repositories)"
-            clone_repos "${repos_arm_only[@]}"
-        elif [ -z "$ARM" ] && [ -n "$repos_intel_only" ]; then
-            print_info "$(emphasize_text Cloning Intel Mac Only Repositories)"
-            clone_repos "${repos_intel_only[@]}"
-        fi
-
-    else
-        if test -n "$repos_linux_only"; then
-            print_info "$(emphasize_text Cloning Linux Only Repositories)"
-            clone_repos "${repos_linux_only[@]}"
-        fi
-    fi
-
-    print_section "Executing Custom Commands"
-
-    # Installing Pwndbg
-    if test -z "$ARM"; then
-        print_info "Attempting to install Pwndbg; This may take a minute"
-        if cd /opt/pwndbg && ./setup.sh --update &>/dev/null; echo y | ./setup.sh &>/dev/null; then
-            print_info "Successfully installed Pwndbg"
-        else 
-            print_err "Failed to install Pwndbg, Aborting"
-            exit 1
-        fi
-    fi
 }
 
 main
