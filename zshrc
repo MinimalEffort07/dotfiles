@@ -49,14 +49,13 @@ setopt PROMPT_SUBST
 # NOTE: If further explanation is required search up 'zsh prompt expansion'
 #
 # Prompt
-export PROMPT='${vcs_info_msg_0_}
-%B%F{$((($RANDOM % 255)))}%S %s %n%F{white}%b%B[%2~]%b%# '
+export PROMPT='%B%F{$((($RANDOM % 255)))}%S %s %n%F{white}%b%B[%2~]%b${vcs_info_msg_0_}%# '
 export RPROMPT='%(?..[%B%F{red}%?%F{white}%b])'
 
 export TERM=xterm-256color
 export PAGER=less
 export EDITOR=nvim
-export DOTFILES="/home/minimaleffort/projects/minimaleffort/dotfiles"
+export DOTFILES="~/projects/minimaleffort/dotfiles"
 #export PATH="/usr/local/opt/binutils/bin:$PATH"
 
 # Aliases
