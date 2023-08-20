@@ -1,7 +1,6 @@
 #!/bin/bash
 #
 # Install and setup packages and configuration files
-#
 # Author: Emmanuel Christianos
 
 CYAN="\x1b\x5b1m\x1b\x5b36m"
@@ -37,12 +36,26 @@ echo -e "
 ██╗██╔╝   ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║
 ╚═╝╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝\x0a"
 
+# Given a dependency name, check if it is installed on the system
+function check_installed() {
+
+    if [[ -n "$(${PCKMAN} list) | grep "$1")" ]]; then
+        return 0
+    else
+        if [[ -n "$(which $1)" ]]; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
 # Given a list of dependencies, install them using: PCKMAN, OPTIONS, ADMIN and CHECK
 function install_deps() {
     arr=("$@")
 
     for dep in ${arr[@]}; do
-        if [[ -n "$(${PCKMAN} list | grep "${dep}")" ]]; then
+        if check_installed "${dep}"; then
             print_info "${dep} is already installed"
             continue
         fi 
@@ -50,15 +63,14 @@ function install_deps() {
         if $ADMIN$PCKMAN install $OPTIONS ${dep}; then
             print_info "Successfully installed ${dep}"
         else
-            if [[ -z "$(which ${dep})" ]]; then
-                print_err "Failed to install ${dep}, check the output. Exiting.."
-            else
+            if check_installed "${dep}"; then
                 print_warn "Non terminal issue encountered while installing ${dep}" \
                             ", it was still abled to be installed"
+            else
+                print_err "Failed to install ${dep}, check the output. Exiting.."
             fi
         fi
     done
-    
 }
 
 function main() {
@@ -109,7 +121,7 @@ export DOTFILES="$(pwd)"
 
     local deps_mac_only=("coreutils")
     local deps_linux_only=("i3")
-    local deps_agnostic=("curl" "zsh" "neovim" "python3")
+    local deps_agnostic=("curl" "zsh" "neovim" "pip")
     
     install_deps ${deps_agnostic[@]}
 
@@ -118,6 +130,12 @@ export DOTFILES="$(pwd)"
     else
         install_deps ${deps_linux_only[@]}
     fi
+
+    local dirs_mac_only=("")
+    local dirs_linux_only=("/root/.config/nvim/" "" )
+    local dirs_agnostic=("curl" "zsh" "neovim" "pip")
 }
+
+
 
 main
