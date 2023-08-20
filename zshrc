@@ -50,7 +50,7 @@ setopt PROMPT_SUBST
 #
 # Prompt
 export PROMPT='%B%F{$((($RANDOM % 255)))}%S %s%n%F{white}%b%B[%2~]${vcs_info_msg_0_}%b%# '
-export RPROMPT='%(?..[%B%F{red}%?%F{white}%b] )'
+export RPROMPT='%(?..[%B%F{red}%?%F{white}%b])'
 
 export TERM=xterm-256color
 export PAGER=less

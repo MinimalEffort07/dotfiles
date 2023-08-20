@@ -292,6 +292,7 @@ if not args.skip_install:
             print_err(
                 f"Failed To Install {DEP_NAME}\n\n\t{pkg.stderr.decode('utf-8')}"
             )
+            print_err(f"{pkg.stderr}")
             sys.exit(pkg.returncode)
         else:
             print_info(f"Installed {DEP_NAME}")
