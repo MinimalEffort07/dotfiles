@@ -149,7 +149,7 @@ else:
 
 # This updates the 'export DOTFILES=/path/to/dotfiles/repo/ with its new 
 # location on this machine.
-sed = sed_inplace(f'{environ["DOTFILES"]}/.zshrc', 'DOTFILES=.*', f'DOTFILES=\"{environ["DOTFILES"]}\"')
+sed = sed_inplace(f'{environ["DOTFILES"]}/zshrc', 'DOTFILES=.*', f'DOTFILES=\"{environ["DOTFILES"]}\"')
 
 if sed:
     print_err("Failed To Perform SED Substitution Of DOTFILES Environment Variable\n\n"
@@ -257,7 +257,7 @@ SYMLINKS = [
     ("init.vim", f"{HOME_DIR}/.config/nvim/init.vim", None),    # USER init.vim
     ("init.vim", "/root/.config/nvim/init.vim", "mac"),         # ROOT init.vim
     ("i3_config", f"{HOME_DIR}/.config/i3/config", "mac"),      # i3 config 
-    (".zshrc", f"{HOME_DIR}/.zshrc", None),                     # zshrc 
+    ("zshrc", f"{HOME_DIR}/.zshrc", None),                      # zshrc 
 ]
 
 for (src, dest, bad_os) in SYMLINKS:
