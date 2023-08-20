@@ -78,11 +78,13 @@ alias vim="nvim"
 
 alias gr="grep -inRI --color"
 
+alias g="git"
 alias gst="git status"
 alias ga="git add"
 alias gc="git commit"
 alias gl="git pull"
 alias gp="git push"
+alias gd="git diff"
 
 alias p="python3"
 alias ctf='docker start ctf && docker attach --detach-keys="ctrl-@" ctf'
