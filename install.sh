@@ -294,18 +294,6 @@ function main() {
     fi
 
     print_section "Executing Custom Commands"
-
-    # Installing GEF
-    if test -n "$ARM"; then
-        print_info "Attempting to install GEF; This may take a minute"
-        if bash -c "$(curl -fsSL https://gef.blah.cat/sh)"; then
-            print_info "Successfully installed GEF"
-        else 
-            print_err "Failed to install GEF, Aborting"
-            exit 1
-        fi
-    fi
-
     print_section "Setting up DOTFILES Environment Variable"
 
     export DOTFILES="$(pwd)"
