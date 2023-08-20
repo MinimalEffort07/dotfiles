@@ -330,7 +330,7 @@ export DOTFILES="$(pwd)"
     local repos_mac_only=()
     local repos_arm_only=()
     local repos_intel_only=("https://github.com/pwndbg/pwndbg.git")
-    local repos_linux_only=()
+    local repos_linux_only=("https://github.com/pwndbg/pwndbg.git")
     local repos_agnostic=()
     
     if test -n "$repos_agnostic"; then
