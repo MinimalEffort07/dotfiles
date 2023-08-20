@@ -16,7 +16,7 @@ precmd() { vcs_info }
 
 # We are formatting the contents of the vcs_info_msg_0_ variable (its contents
 # will replace the %b in the format text below" 
-zstyle ':vcs_info:git:*' formats '(%F{cyan}%b%F{white})'
+zstyle ':vcs_info:git:*' formats '(%F{11}%b%F{white})'
 
 # This option allows us to run commands within our prompt expansion which we 
 # need for shuf and vcs_info
