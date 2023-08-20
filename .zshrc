@@ -121,4 +121,5 @@ alias vi="nvim"
 alias v="nvim"
 alias ctf='docker start ctf && docker attach --detach-keys="ctrl-@" ctf'
 alias rls="ls"
-alias sl"ls"
+alias sl="ls"
+alias ls="ls -1Gc"

@@ -15,6 +15,9 @@ set number
 " Number of spaces for a single tab.
 set tabstop=4
 
+" When indenting with '>' treat each indent as 4 spaces
+set shiftwidth=4
+
 " Turn tabs into spaces.
 set expandtab
 
@@ -111,6 +114,9 @@ nnoremap <C-c> *gn"*y:let @/ = ""<CR>
 " nnoremap <C-g> *gn"*y<ESC>:let @/ = ""<CR>:let $tdir=expand('%:p:h')<CR>:tabe<CR>:terminal<CR>i<CR>cd $tdir<CR>clear<CR>gr `pbpaste`<CR>
 
 nnoremap <C-g> :YcmCompleter GoTo<CR>
+
+" Create SED to clear all trailing white space
+nnoremap clear :%s/ \+$//gc<CR>
 
 " ----------- Insert Mode Custom Key Mappings ---------------------------------
 
