@@ -122,4 +122,10 @@ alias v="nvim"
 alias ctf='docker start ctf && docker attach --detach-keys="ctrl-@" ctf'
 alias rls="ls"
 alias sl="ls"
-alias ls="ls -1Gc"
+alias ls="ls -1c --color"
+
+bindkey -v
+bindkey ^R history-incremental-search-backward
+bindkey ^P up-line-or-history
+bindkey ^N down-line-or-history
+bindkey -M viins 'jk' vi-cmd-mode 
