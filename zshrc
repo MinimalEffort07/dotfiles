@@ -55,7 +55,7 @@ export RPROMPT='%(?..[%B%F{red}%?%F{white}%b])'
 export TERM=xterm-256color
 export PAGER=less
 export EDITOR=nvim
-export DOTFILES="/Users/emmanuelchristianos/projects/minimaleffort/dotfiles"
+export DOTFILES="/home/minimaleffort/projects/minimaleffort/dotfiles"
 
 # Aliases
 alias zshrc="vim $DOTFILES/zshrc"
@@ -71,7 +71,7 @@ alias clea="clear"
 alias cc="clear && printf '\e[3J'"
 alias celar="clear" 
 
-if [[ "$(uname)" -eq "Darwin" ]]
+if [[ "$(uname)" = "Darwin" ]]
 then
     alias ls="gls -1c --color -Fv"
 else
@@ -81,6 +81,7 @@ fi
 alias l="ls"
 alias ll="ls -l"
 alias la="ls -A"
+alias lla="ls -la"
 alias rls="ls"
 alias sl="ls"
 
