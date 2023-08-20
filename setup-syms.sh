@@ -5,6 +5,8 @@ os=$(uname)
 
 nvim --version 2> /dev/null
 
+# Does OS dependant install
+
 if [ $? -ne 0 ]
 then 
     if [ $os = "Darwin" ]
@@ -44,4 +46,4 @@ then
 fi
 cp .zshrc ~/.zshrc
 
-source ~/.zshrc
+exec zsh

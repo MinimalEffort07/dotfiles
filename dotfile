@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+# Copy over vim dictionary so that I don't have keep rebuilding the dictionary 
+# on different computers. 
+
+# OS Dependant installs as well as aliases like options for ls. 
+
+# Make ~/.zshrc be a symlink to the file in this directory and make the zshrc 
+# alias open the file in the folder. 
+
+# Create a DOTFILE env so that we can reference this folders location.
+
+# Should backup exisintg .zshrc before replacing with repo/.zshrc
+
+# Should copy over i3/config as well. 
+
