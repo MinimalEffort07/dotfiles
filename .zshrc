@@ -3,13 +3,16 @@
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
-export LC_CTYPE=C.UTF-8 gdb
+
+# To Find LLVM, Installed for YouCompleteMe
+export LDFLAGS="-L/usr/local/opt/llvm/lib"
+export CPPFLAGS="-I/usr/local/opt/llvm/include"
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="af-magic"
+ZSH_THEME="jonathan"
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -108,7 +111,7 @@ alias vimrc="vim $HOME/.vimrc"
 alias tmuxc="vim $HOME/.tmux.conf"
 alias celar="clear" 
 alias sconf="vim ~/.ssh/config" 
-alias gr="grep -inR"
+alias gr="grep -inRI --color"
 alias tconf="vim ~/.tmux.conf"
 alias venv="source .v/bin/activate"
 alias p="python3"
@@ -116,3 +119,6 @@ alias asm="docker start asm && docker attach asm"
 alias vim="nvim"
 alias vi="nvim"
 alias v="nvim"
+alias ctf='docker start ctf && docker attach --detach-keys="ctrl-@" ctf'
+alias rls="ls"
+alias sl"ls"
