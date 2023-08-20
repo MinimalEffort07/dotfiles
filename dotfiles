@@ -7,8 +7,10 @@ import argparse
 import subprocess
 import re
 import tempfile
+import sys
 
 from platform import platform
+
 from shutil import (
     copystat,
     copy,
@@ -77,12 +79,13 @@ def sed_inplace(filename, pattern, repl) -> int:
         pattern_compiled = re.compile(pattern)
 
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_file:
-            with open(filename) as src_file:
+            with open(filename, mode='r', encoding='utf-8') as src_file:
                 for line in src_file:
                     tmp_file.write(pattern_compiled.sub(repl, line))
 
         copystat(filename, tmp_file.name)
         move(tmp_file.name, filename)
+    # pylint: disable=bare-except
     except:
         return 1
 
@@ -168,7 +171,7 @@ HOME_DIR = environ["HOME"]
 
 if not environ["DOTFILES"]:
     print_err("Failed To Set $DOTFILES Environment Variable")
-    exit(1)
+    sys.exit(1)
 else:
     print_info(
         f'Set $DOTFILES Environment Variable To: "{style_path(environ["DOTFILES"])}"'
@@ -176,18 +179,18 @@ else:
 
 # This updates the 'export DOTFILES=/path/to/dotfiles/repo/ with its new
 # location on this machine.
-sed = sed_inplace(
+SED_ENV_VAR_UPDATE = sed_inplace(
     f'{environ["DOTFILES"]}/zshrc', "DOTFILES=.*", f'DOTFILES="{environ["DOTFILES"]}"'
 )
 
-if sed:
+if SED_ENV_VAR_UPDATE:
     print_err(
         "Failed To Perform SED Substitution Of DOTFILES Environment Variable\n\n"
-        + f"\t{sed}"
+        + f"\t{SED_ENV_VAR_UPDATE}"
     )
-    exit(sed)
+    sys.exit(SED_ENV_VAR_UPDATE)
 else:
-    print_info(f"Updates $DOTFILES Environment Variable In .zshrc")
+    print_info("Updates $DOTFILES Environment Variable In .zshrc")
 
 # [ SETUP PACKAGE MANAGER ]
 
@@ -206,15 +209,16 @@ if not args.skip_install:
                 ),
             ],
             capture_output=True,
+            check=True,
         )
 
         if homebrew.returncode:
             print_err(
                 f"Failed To Install Homebrew\n\n\t{homebrew.stderr.decode('utf-8')}"
             )
-            exit(homebrew.returncode)
+            sys.exit(homebrew.returncode)
         else:
-            print_info(f"Installed Homebrew")
+            print_info("Installed Homebrew")
 
 # [ INSTALLING DEPENDENCIES AS PACKAGES ]
 #   Dependencies are in the format of:
@@ -248,39 +252,41 @@ DEPENDENCIES = [
 if not args.skip_install:
     print_headers(" [ Installing Dependencies ] ")
     for executable, package, bad_os, command in DEPENDENCIES:
-        install_obj = executable if not package else package
+        DEP_NAME = executable if not package else package
 
         if bad_os == OS:
-            print_warn(f"{install_obj} Not Required On {OS}, Skipping..")
+            print_warn(f"{DEP_NAME} Not Required On {OS}, Skipping..")
             continue
 
         if which(executable):
-            print_warn(f"{install_obj} Already Installed")
+            print_warn(f"{DEP_NAME} Already Installed")
             continue
 
         if command:
-            print_info(f"Command Was Provided For {install_obj}, Executing Command")
-            cmd = subprocess.run(command, capture_output=True)
+            print_info(f"Command Was Provided For {DEP_NAME}, Executing Command")
+            cmd = subprocess.run(command, capture_output=True, check=True)
             if cmd.returncode:
                 print_err(
-                    f"Failed To Install {install_obj}\n\n\t{cmd.stderr.decode('utf-8')}"
+                    f"Failed To Install {DEP_NAME}\n\n\t{cmd.stderr.decode('utf-8')}"
                 )
-                exit(cmd.returncode)
+                sys.exit(cmd.returncode)
             continue
 
-        print_warn(f"{executable} Was Not Found.. Attempting To Install {install_obj}")
+        print_warn(f"{executable} Was Not Found.. Attempting To Install {DEP_NAME}")
 
         pkg = subprocess.run(
-            [f"{PACKAGE_MANAGER}", "install", f"{install_obj}"], capture_output=True
+            [f"{PACKAGE_MANAGER}", "install", f"{DEP_NAME}"],
+            capture_output=True,
+            check=True
         )
 
         if pkg.returncode:
             print_err(
-                f"Failed To Install {install_obj}\n\n\t{pkg.stderr.decode('utf-8')}"
+                f"Failed To Install {DEP_NAME}\n\n\t{pkg.stderr.decode('utf-8')}"
             )
-            exit(pkg.returncode)
+            sys.exit(pkg.returncode)
         else:
-            print_info(f"Installed {install_obj}")
+            print_info(f"Installed {DEP_NAME}")
 
 # [ CREATING REQUIRED CONFIGURATION DIRECTORIES ]
 
@@ -305,7 +311,7 @@ for config_dir, bad_os in CONFIG_DIRS:
         continue
 
     try:
-        mkdir = makedirs(config_dir)
+        makedirs(config_dir)
         print_info(f'Created Directory: "{style_path(config_dir)}"')
     except FileExistsError:
         print_warn(
@@ -354,7 +360,7 @@ for src, dest, bad_os in SYMLINKS:
                 "Couldn't Create Symlink:"
                 f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\""
             )
-            exit(1)
+            sys.exit(1)
 
         if exists(abspath(dest + BACKUP_SUFFIX)):
             print_warn(
