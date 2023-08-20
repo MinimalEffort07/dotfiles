@@ -54,24 +54,24 @@ function create_syms() {
                        "Attempting to back it up now"
                                    
             # Existing File, back it up
-            if $ADMIN test -f "${symarr[1]}.dotfiles.bak"; then
+            if $ADMIN test -f ".${symarr[1]}.dotfiles.bak"; then
                 print_info "Found existing backup. Attempting to delete it."
-                if rm "${symarr[1]}.dotfiles.bak"; then
+                if rm ".${symarr[1]}.dotfiles.bak"; then
                     print_info "Deleted existing backup"
-                elif $ADMIN rm "${symarr[1]}.dotfiles.bak 2>/dev/null"; then
+                elif $ADMIN rm ".${symarr[1]}.dotfiles.bak 2>/dev/null"; then
                     print_warn "Deleted existing backup. Required sudo"
                 else 
                     print_warn "Failed to delete existing backup. "\
                                "Not serious issue, you may want to manually "\
-                               "delete the backup $(style_path ${symarr[1]}.dotfiles.bak)"
+                               "delete the backup $(style_path .${symarr[1]}.dotfiles.bak)"
                 fi
             fi
             
             # Attempting backup
-            if mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak"; then 
+            if mv "${symarr[1]}" ".${symarr[1]}.dotfiles.bak"; then 
                 print_info "$(style_path ${symarr[1]}) Successfully backed up to "\
                            "${symarr[1]}.dotfiles.back"
-            elif $ADMIN mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" 2>/dev/null; then
+            elif $ADMIN mv "${symarr[1]}" ".${symarr[1]}.dotfiles.bak" 2>/dev/null; then
                 print_warn "${symarr[1]} Successfully backed up to "\
                            "${symarr[1]}.dotfiles.back. Required sudo"
             else
