@@ -92,7 +92,6 @@ def sed_inplace(filename, pattern, repl) -> int:
 
     return 0
 
-
 description = f"""
 Sets up Linux/MacOS machine with preferred software and configuration by:
 
@@ -258,6 +257,7 @@ if not args.skip_install:
     MAC_OPTIONS = ""
 
     OPTIONS = MAC_OPTIONS if OS == "mac" else LINUX_OPTIONS
+    ADMIN = "sudo" if OS == "linux" else ""
 
     for executable, package, bad_os, command in DEPENDENCIES:
         DEP_NAME = executable if not package else package
@@ -282,11 +282,9 @@ if not args.skip_install:
 
         print_warn(f"{executable} Was Not Found.. Attempting To Install {DEP_NAME}")
 
-
-
         pkg = subprocess.run(
-            [f"{PACKAGE_MANAGER}", "install", f"{OPTIONS}", f"{DEP_NAME}"],
-            capture_output=True,
+            [f"{ADMIN}", f"{PACKAGE_MANAGER}", "install", f"{OPTIONS}", f"{DEP_NAME}"],
+            capture_output=False,
             check=True
         )
 
@@ -303,53 +301,62 @@ if not args.skip_install:
 print_headers(" [ Creating Required Configuration Directories ] ")
 
 #   Configuration directories are in the format of:
-#       (directory_path, os_not_to_create_on or None)
+#       (directory_path, os_not_to_create_on or None, requires_admin)
 #
 #       e.g. ("~/.config/nvim", None) or ("/root/.config/i3", mac)
 
 CONFIG_DIRS = [
-    (f"{HOME_DIR}/.config/nvim/", None),
-    ("/root/.config/nvim/", "mac"),
-    (f"{HOME_DIR}/.config/i3/", "mac"),
+    (f"{HOME_DIR}/.config/nvim/", None, False),
+    ("/root/.config/nvim/", "mac", True),
+    (f"{HOME_DIR}/.config/i3/", "mac", False),
 ]
 
-for config_dir, bad_os in CONFIG_DIRS:
+for config_dir, bad_os, admin in CONFIG_DIRS:
+    ADMIN = "sudo" if (OS == "linux" and admin) else ""
+
     if bad_os == OS:
         print_warn(
             f'Not Creating Directory: "{style_path(config_dir)}" on {OS.upper()}'
         )
         continue
 
-    try:
-        makedirs(config_dir)
-        print_info(f'Created Directory: "{style_path(config_dir)}"')
-    except FileExistsError:
+    mk = subprocess.run(
+            [f"{ADMIN}", "mkdir", "-p", config_dir],
+            capture_output=True, 
+            check=True)
+
+    if mk.returncode:
         print_warn(
             f'Attempted To Make Directory: "{style_path(config_dir)}" But It Already'
             " Exists"
         )
+    else:
+        print_info(f'Created Directory: "{style_path(config_dir)}"')
 
 # [ CREATING SYMLINKS ]
 
 print_headers(" [ Creating Configuration File Symlinks ] ")
 
 #   Symlinks are in the format of:
-#       (source, destination, os_not_to_create_on)
+#       (source, destination, os_not_to_create_on, requires_admin)
 #
 #   NOTE: That all source paths will have the value of $DOTFILES prepended to it
-#       e.g. ("init.vim", "~/.config/nvim", None) or
-#            ("init.vim", "/root/.config/nvim", mac)
+#       e.g. ("init.vim", "~/.config/nvim", None, False) or
+#            ("init.vim", "/root/.config/nvim", mac, True)
 
 SYMLINKS = [
-    ("init.vim", f"{HOME_DIR}/.config/nvim/init.vim", None),  # USER init.vim
-    ("init.vim", "/root/.config/nvim/init.vim", "mac"),       # ROOT init.vim
-    ("i3_config", f"{HOME_DIR}/.config/i3/config", "mac"),    # i3 config
-    ("zshrc", f"{HOME_DIR}/.zshrc", None),                    # zshrc
+    ("init.vim", f"{HOME_DIR}/.config/nvim/init.vim", None, False),  # USER init.vim
+    ("init.vim", "/root/.config/nvim/init.vim", "mac", True),       # ROOT init.vim
+    ("i3_config", f"{HOME_DIR}/.config/i3/config", "mac", False),    # i3 config
+    ("zshrc", f"{HOME_DIR}/.zshrc", None, False),                    # zshrc
 ]
 
 BACKUP_SUFFIX = ".dotfiles.bak"
 
-for src, dest, bad_os in SYMLINKS:
+for src, dest, bad_os, admin in SYMLINKS:
+
+    ADMIN = "sudo" if OS == "linux" and admin else ""
+
     if bad_os == OS:
         print_warn(
             "Not Creating Symlink:"
@@ -358,33 +365,61 @@ for src, dest, bad_os in SYMLINKS:
         )
         continue
 
-    try:
-        print_info(
-            "Attempting To Create Symlink:"
-            f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\""
-        )
-        symlink(abspath(src), abspath(dest))
-    except FileExistsError:
+    print_info(
+        "Attempting To Create Symlink:"
+        f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\""
+    )
+    ln = subprocess.run(
+            [f"{ADMIN}", "ln", "-s", f"{abspath(src)}", f"{abspath(dest)}"],
+            capture_output=False, 
+            check=False)
+        
+    if ln.returncode:
+
         if not args.force_sym_create:
             print_err(
                 "Couldn't Create Symlink:"
                 f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\""
             )
-            sys.exit(1)
+            sys.exit(ln.returncode)
 
         if exists(abspath(dest + BACKUP_SUFFIX)):
             print_warn(
                 f'Found Existing Backup File At: "{style_path(dest+BACKUP_SUFFIX)}",'
                 " Removing It.."
             )
-            remove(dest + BACKUP_SUFFIX)
+
+        rm = subprocess.run(
+                [f"{ADMIN}", "rm", "-rf", dest + BACKUP_SUFFIX],
+                capture_output=False, 
+                check=False)
 
         print_info(f'Creating New Backup File At: "{style_path(dest+BACKUP_SUFFIX)}"')
 
         copy(abspath(dest), abspath(dest + BACKUP_SUFFIX), follow_symlinks=False)
 
-        remove(abspath(dest))
-        symlink(abspath(src), abspath(dest))
+        cp = subprocess.run(
+                [f"{ADMIN}", "cp", dest, dest + BACKUP_SUFFIX],
+                capture_output=False, 
+                check=False)
+
+        rm = subprocess.run(
+                [f"{ADMIN}", "rm", "-rf", dest],
+                capture_output=False, 
+                check=False)
+
+        ln = subprocess.run(
+                [f"{ADMIN}", "ln", "-s", f"{abspath(src)}", f"{abspath(dest)}"],
+                capture_output=False, 
+                check=False)
+
+        if ln.returncode:
+            print_err(
+                "Couldn't Create Symlink Even After Deleting Old Symlink:"
+                f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\""
+            )
+            sys.exit(ln.returncode)
+
         print_info(
             "Created Symlink:"
             f" \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\""
