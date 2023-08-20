@@ -49,7 +49,7 @@ setopt PROMPT_SUBST
 # NOTE: If further explanation is required search up 'zsh prompt expansion'
 #
 # Prompt
-export PROMPT='%B%F{$((($RANDOM % 255)))}%S %s%n%F{white}%b%B[%2~]${vcs_info_msg_0_}%b%# '
+export PROMPT='%B%F{$((($RANDOM % 255)))}%S %s %n%F{white}%b%B[%2~]${vcs_info_msg_0_}%b%# '
 export RPROMPT='%(?..[%B%F{red}%?%F{white}%b])'
 
 export TERM=xterm-256color
