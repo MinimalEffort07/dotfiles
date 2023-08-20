@@ -42,19 +42,6 @@ function dotfiles_bannner() {
     ╚═╝╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝\x0a"
 }
 
-function custom_command() {
-
-    arr=("$@")
-    for custom_command in "$@"; do
-        echo $custom_command
-        print_info "Attempting to run ${custom_command}"
-        if $custom_command; then
-            print_info "Custom command succeeded"
-        else
-            print_err "Custom command failed. Aborting"
-        fi
-    done
-}
 
 function clone_repos() {
 
@@ -323,16 +310,13 @@ export DOTFILES="$(pwd)"
 
     print_section "Executing Custom Commands"
 
-    local custom_com_mac_only=()
-    local custom_com_linux_only=()
-    local custom_com_agnostic=("ls")
-
-    custom_command "${custom_com_agnostic[@]}"
-
-    if test "$OS" = "Darwin"; then
-        custom_command "${custom_com_mac_only[@]}"
-    else
-        custom_command "${custom_com_linux_only[@]}"
+    # Installing Pwndbg
+    print_info "Attempting to install Pwndbg; This may take a minute"
+    if cd /opt/pwndbg && ./setup.sh --update &>/dev/null; echo y | ./setup.sh &>/dev/null; then
+        print_info "Successfully installed Pwndbg"
+    else 
+        print_err "Failed to install Pwndbg, Aborting"
+        exit 1
     fi
 }
 
