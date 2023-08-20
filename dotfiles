@@ -256,8 +256,9 @@ for (src, dest, bad_os) in SYMLINKS:
     if bad_os == OS:
         print_warn(f"Not Creating Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\" on {bad_os}")
         continue
-
+    
     try:
+        symlink(abspath(src), abspath(dest))
         print_info(f"Created Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
     except:
         print_err(f"Couldn't Create Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")

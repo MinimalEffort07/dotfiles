@@ -50,7 +50,7 @@ setopt PROMPT_SUBST
 #
 export PROMPT='%B%F{$(shuf -i 1-255 -n 1)}%n%F{clear}%b%B[%2~]${vcs_info_msg_0_}%b%# '
 export RPROMPT='%(?..[%B%F{red}%?%F{clear}%b] )'
-export DOTFILES="/Users/emmanuelchristianos/work/minimaleffort/dotfiles"
+export DOTFILES="/Users/emmanuelchristianos/projects/minimaleffort/dotfiles"
 # Aliases
 alias zshrc="vim $HOME/.zshrc"
 alias sourcezsh="source $HOME/.zshrc"
