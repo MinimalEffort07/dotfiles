@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+
+# Copy over vim dictionary so that I don't have keep rebuilding the dictionary 
+# on different computers. 
+
+# OS Dependant installs as well as aliases like options for ls. 
+
+# Make ~/.zshrc be a symlink to the file in this directory and make the zshrc 
+# alias open the file in the folder. 
+
+# Create a DOTFILE env so that we can reference this folders location.
+
+# Should backup exisintg .zshrc before replacing with repo/.zshrc
+
+# Should copy over i3/config as well. 
+
+# Prerequisites
+# neovim
+# vim-plug 
+
+import argparse 
+import shutil
+
+from platform import platform
+from os import (
+        system,
+        environ,
+        path,
+        mkdirs,
+)
+
+from os.path import (
+        dirname,
+        abspath,
+)
+
+from colorama import (
+        Fore,
+        Style,
+)
+
+description = f"""
+Sets up Linux/MacOS machine with preferred software and configuration by:
+
+[{Fore.LIGHTBLUE_EX} Installs Software Prerequisites {Style.RESET_ALL}]
+    1. Zsh
+    2. Neovim
+    3. Vim-plug
+    4. i3
+    5. brew (MacOS Only)
+
+[{Fore.LIGHTBLUE_EX} Creates DOTFILES Environment Variable {Style.RESET_ALL}]
+    DOTFILES=/path/to/dotfiles/repository
+
+    So that symlinks and aliases can find the dotfiles repository
+
+    e.g.
+
+    alias zshrc="nvim $DOTFILES/.zshrc"
+    alias vimrc="nvim $DOTFILES/init.vim"
+    ...
+
+[{Fore.LIGHTBLUE_EX} Symlinks Configuration Files {Style.RESET_ALL}]
+    i.e:
+
+    ~/.config/nvim/init.vim -> $DOTFILES/init.vim
+    ~/.config/i3/config -> $DOTFILES/i3.config
+    ~/.zshrc -> $DOTFILES/.zshrc
+    ...
+"""
+
+parser = argparse.ArgumentParser(prog='dotfiles', 
+                                 description=description,
+                                 formatter_class=argparse.RawTextHelpFormatter)
+
+parser.add_argument('--skip-install',
+                    action='store_true',
+                    required=False,
+                    dest="skip_install",
+                    help='Skips trying to install prerequisite software')
+
+args = parser.parse_args()
+
+
+# [ DETERMINING OS ]
+
+# Determine operating system so we can use appropriate package manager
+# Currently only support Debian package manager for Linux.. Will update if I
+# ever start using Fedora?!
+
+OS = "mac" if platform()[:5].lower() == "macos" else "linux"
+PACKAGE_MANAGER = "brew" if OS == "mac" else "sudo apt"
+
+# [ SETTING UP DOTFILES ENVIRONMENT VARIABLE ]
+
+environ["DOTFILES"] = dirname(abspath(__file__))
+
+# This updates the 'export DOTFILES=/path/to/dotfiles/repo/ with its new 
+# location on this machine.
+system(f'sed -Ei s@DOTFILES=.*@DOTFILES=\\"{environ["DOTFILES"]}\\"@g {environ["DOTFILES"]}/.zshrc')
+
+# [ SETUP PACKAGE MANAGER ]
+
+if not args.skip_install:
+    # If mac and brew isn't installed, install it. 
+    if OS == "mac" and not shutil.which('brew'):
+        system("/bin/bash -c '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'")
+
+# [ INSTALLING SOFTWARE PREREQUISITES ]
+
+# Dependencies are in the format of: 
+#   (name_of_executable, name_of_package_it_resides_in)
+# e.g. (nvim, neovim)
+DEPENDENCIES = [ 
+    ("zsh",), 
+    ("nvim", "neovim"),
+    ("i3",),
+]
+
+if not args.skip_install:
+    for (executable, package) in DEPENDENCIES:
+        if not shutil.which(executable):
+            system(f"{PACKAGE_MANAGER} install {executable if not package}")
+
+# [ CREATING REQUIRED CONFIGURATION DIRECTORIES ]
+
+NVIM_CONFIG = "~/.config/nvim"
+NVIM_CONFIG_ROOT = "/root/.config/nvim"
+I3_CONFIG = "~/.config/i3"
+
+
+CONFIG_DIRS = [ NVIM_CONFIG, NVIM_CONFIG_ROOT, I3_CONFIG ]
+
+for config_dir in CONFIG_DIRS:
+    # Don't bother checking if they already exists, it is not harmful to attempt
+    # to mkdir an existing directory.
+    mkdirs(config_dir)
+
+
+"""
+#!/bin/zsh
+# This file is hot garbage, assume you will lose some files
+
+os=$(uname)
+
+nvim --version 2> /dev/null
+
+# Does OS dependant install
+
+if [ $? -ne 0 ]
+then 
+    if [ $os = "Darwin" ]
+    then
+        brew install neovim
+    else
+        sudo apt install neovim -y
+    fi 
+fi
+
+mkdir -p ~/.config/nvim 2> /dev/null
+
+if ! [ -f ~/.config/nvim/init.vim_pre_dotfile_install ] 
+then
+    mv ~/.config/nvim/init.vim ~/.config/nvim/init.vim.pre_dotfile_install
+fi 
+
+if ! [ -f ~/.vimrc.vim_pre_dotfile_install ] 
+then
+    mv ~/.vimrc ~/.vimrc.pre_dotfile_install
+fi
+
+cp .vimrc ~/.vimrc
+ln -s ~/.vimrc ~/.config/nvim/init.vim
+
+if ! [ -s ~/.local/share/nvim/site/autoload/plug.vim ]
+then 
+    echo "vim plug doesn't exists downloading"
+
+    sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+fi
+
+if ! [ -f ~/.zshrc.vim_pre_dotfile_install ] 
+then
+    mv ~/.zshrc ~/.zshrc.pre_dotfile_install
+fi
+cp .zshrc ~/.zshrc
+
+exec zsh
+"""
