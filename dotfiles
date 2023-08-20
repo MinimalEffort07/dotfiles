@@ -156,11 +156,9 @@ args = parser.parse_args()
 print_headers(" [ Determining Operating System ] ")
 
 OS = "mac" if platform()[:5].lower() == "macos" else "linux"
-
 print_info(f"{OS.upper()} Operating System Detected")
 
 PACKAGE_MANAGER = "brew" if OS == "mac" else "apt"
-
 print_info(f"Using '{PACKAGE_MANAGER}' Package Manager")
 
 # [ SETTING UP DOTFILES ENVIRONMENT VARIABLE ]
