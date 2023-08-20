@@ -16,7 +16,7 @@ precmd() { vcs_info }
 
 # We are formatting the contents of the vcs_info_msg_0_ variable (its contents
 # will replace the %b in the format text below" 
-zstyle ':vcs_info:git:*' formats '%b'
+zstyle ':vcs_info:git:*' formats '(%F{cyan}%b%F{white})'
 
 # This option allows us to run commands within our prompt expansion which we 
 # need for shuf and vcs_info
@@ -49,8 +49,8 @@ setopt PROMPT_SUBST
 # NOTE: If further explanation is required search up 'zsh prompt expansion'
 #
 # Prompt
-
-export PROMPT='%B%F{$((($RANDOM % 255)))}%S %s %n%F{white}%b%B[%2~]%b(%F{cyan}%B$(echo ${vcs_info_msg_0_} | head -c17)%b%F{white})%# '
+export PROMPT='${vcs_info_msg_0_}
+%B%F{$((($RANDOM % 255)))}%S %s %n%F{white}%b%B[%2~]%b%# '
 export RPROMPT='%(?..[%B%F{red}%?%F{white}%b])'
 
 export TERM=xterm-256color
