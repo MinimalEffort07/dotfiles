@@ -25,11 +25,13 @@ from os import (
         path,
         makedirs,
         symlink,
+        remove,
 )
 
 from os.path import (
         dirname,
         abspath,
+        exists,
 )
 
 from colorama import (
@@ -112,6 +114,12 @@ parser.add_argument('--skip-install',
                     dest="skip_install",
                     help='Skips trying to install prerequisite software')
 
+parser.add_argument('-f',
+                    action='store_true',
+                    required=False,
+                    dest="force_sym_create",
+                    help='Deletes existing symlinks and creates new ones')
+
 args = parser.parse_args()
 
 # [ DETERMINING OS ]
@@ -131,6 +139,7 @@ print_info(f"Using '{PACKAGE_MANAGER}' Package Manager")
 # [ SETTING UP DOTFILES ENVIRONMENT VARIABLE ]
 
 environ["DOTFILES"] = dirname(abspath(__file__))
+HOME_DIR = environ["HOME"] 
 
 if not environ["DOTFILES"]:
     print_err("Failed To Set $DOTFILES Environment Variable")
@@ -220,9 +229,9 @@ if not args.skip_install:
 #
 #       e.g. ("~/.config/nvim", None) or ("/root/.config/i3", mac)
 
-CONFIG_DIRS = [ ("~/.config/nvim/", None),
+CONFIG_DIRS = [ (f"{HOME_DIR}/.config/nvim/", None),
                 ("/root/.config/nvim/", "mac"),
-                ("~/.config/i3/", "mac") ]
+                (f"{HOME_DIR}/.config/i3/", "mac") ]
 
 for (config_dir, bad_os) in CONFIG_DIRS:
     if bad_os == OS:
@@ -245,10 +254,10 @@ for (config_dir, bad_os) in CONFIG_DIRS:
 #            ("init.vim", "/root/.config/nvim", mac)
 
 SYMLINKS = [ 
-    ("init.vim", "~/.config/nvim/init.vim", None),                # USER init.vim
-    ("init.vim", "/root/.config/nvim/init.vim", "mac"),     # ROOT init.vim
-    ("i3_config", "~/.config/i3/config", "mac"),            # i3 config 
-    (".zshrc", "~/.zshrc", None),                                 # zshrc 
+    ("init.vim", f"{HOME_DIR}/.config/nvim/init.vim", None),    # USER init.vim
+    ("init.vim", "/root/.config/nvim/init.vim", "mac"),         # ROOT init.vim
+    ("i3_config", f"{HOME_DIR}/.config/i3/config", "mac"),      # i3 config 
+    (".zshrc", f"{HOME_DIR}/.zshrc", None),                     # zshrc 
 ]
 
 for (src, dest, bad_os) in SYMLINKS:
@@ -261,8 +270,16 @@ for (src, dest, bad_os) in SYMLINKS:
         symlink(abspath(src), abspath(dest))
         print_info(f"Created Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
     except:
-        print_err(f"Couldn't Create Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
+        if not args.force_sym_create:
+            print_err(f"Couldn't Create Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
+            exit(1)
 
+        if not exists(dest):
+            print_err(f"Couldn't force recreate Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
+            exit(1)
+
+        remove(dest)
+        symlink(abspath(src), abspath(dest))
 """
 mkdir -p ~/.config/nvim 2> /dev/null
 
