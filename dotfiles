@@ -253,6 +253,12 @@ DEPENDENCIES = [
 
 if not args.skip_install:
     print_headers(" [ Installing Dependencies ] ")
+
+    LINUX_OPTIONS = "-y"
+    MAC_OPTIONS = ""
+
+    OPTIONS = MAC_OPTIONS if OS == "mac" else LINUX_OPTIONS
+
     for executable, package, bad_os, command in DEPENDENCIES:
         DEP_NAME = executable if not package else package
 
@@ -276,8 +282,10 @@ if not args.skip_install:
 
         print_warn(f"{executable} Was Not Found.. Attempting To Install {DEP_NAME}")
 
+
+
         pkg = subprocess.run(
-            [f"{PACKAGE_MANAGER}", "install", '-y', f"{DEP_NAME}"],
+            [f"{PACKAGE_MANAGER}", "install", f"{OPTIONS}", f"{DEP_NAME}"],
             capture_output=True,
             check=True
         )
