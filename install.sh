@@ -3,11 +3,12 @@
 # Install and setup packages and configuration files
 # Author: Emmanuel Christianos
 
-CYAN="\x1b\x5b1m\x1b\x5b36m"
-RED="\x1b\x5b1m\x1b\x5b31m"
-GREEN="\x1b\x5b1m\x1b\x5b32m"
-YELLOW="\x1b\x5b1m\x1b\x5b33m"
-GRAY="\x1b\x5b1m\x1b\x5b37m"
+CYAN="\x1b\x5b1;96m"
+RED="\x1b\x5b1;91m"
+GREEN="\x1b\x5b1;92m"
+YELLOW="\x1b\x5b1;93m"
+BRIGHT_BLACK="\x1b\x5b1;3;90m"
+BLUE="\x1b\x5b1;3;94m"
 RES="\x1b\x5b0m"
 
 function print_info() {
@@ -23,11 +24,15 @@ function print_err() {
 }
 
 function print_section() {
-    echo -e "[${GREEN}SECTION${RES}] $@"
+    echo -e "[${GREEN}SECTION${RES}] ----- ${GREEN}${@^^}${RES} -----"
 }
 
 function style_path() {
-    echo -e "${GREEN}$@${RES}"
+    echo -e "${BRIGHT_BLACK}$@${RES}"
+}
+
+function emphasize_text() {
+    echo -e "${BLUE}$@${RES}"
 }
 
 
@@ -57,7 +62,7 @@ function clone_repos() {
         repo_name="$(echo "$repo_url" | rev | cut -d'/' -f1 | cut -d. -f 2 | rev)"
 
         if $ADMIN test -d "/opt/${repo_name}"; then
-            print_warn "${repo_name} already exists"
+            print_warn "$(emphasize_text ${repo_name}) already exists. Skipping"
         else
             print_info "Attempting to clone ${repo_name} into /opt/${repo_name}"
             if $ADMIN git clone -q $repo_url "/opt/${repo_name}"; then
@@ -84,58 +89,59 @@ function create_syms() {
     for sym in "$@"; do
         symarr=($sym)
 
-        if $ADMIN test -f "${symarr[1]}"j; then
+        print_info "Attempting to create symlink, ${symarr[1]} -> ${symarr[0]}"
 
-            print_info "$(style_path ${symarr[1]}) already exists but is not a symlink. "\
+        if $ADMIN test -f "${symarr[1]}"; then
+
+            print_info "....$(style_path ${symarr[1]}) already exists but is not a symlink. "\
                        "Attempting to back it up now"
                                    
-            # Existing File, back it up
-            if $ADMIN test -f ".${symarr[1]}.dotfiles.bak"; then
-                print_info "Found existing backup. Attempting to delete it."
-                if rm ".${symarr[1]}.dotfiles.bak"; then
-                    print_info "Deleted existing backup"
-                elif $ADMIN rm ".${symarr[1]}.dotfiles.bak &>/dev/null"; then
-                    print_warn "Deleted existing backup. Required sudo"
+            # Remove existing backup file if it exists
+            if $ADMIN test -f "${symarr[1]}.dotfiles.bak"; then
+                print_info "....Found existing backup. Attempting to delete it."
+                if rm "${symarr[1]}.dotfiles.bak" &>/dev/null; then
+                    print_info "....Deleted existing backup"
+                elif $ADMIN rm "${symarr[1]}.dotfiles.bak &>/dev/null" &>/dev/null; then
+                    print_warn "....Deleted existing backup. Required sudo"
                 else 
-                    print_warn "Failed to delete existing backup. "\
+                    print_warn "....Failed to delete existing backup. "\
                                "Not serious issue, you may want to manually "\
                                "delete the backup $(style_path .${symarr[1]}.dotfiles.bak)"
                 fi
             fi
             
             # Attempting backup
-            if mv "${symarr[1]}" ".${symarr[1]}.dotfiles.bak"; then 
-                print_info "$(style_path ${symarr[1]}) Successfully backed up to "\
-                           "${symarr[1]}.dotfiles.back"
-            elif $ADMIN mv "${symarr[1]}" ".${symarr[1]}.dotfiles.bak" &>/dev/null; then
-                print_warn "${symarr[1]} Successfully backed up to "\
-                           "${symarr[1]}.dotfiles.back. Required sudo"
+            if mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then 
+                print_info "....$(style_path ${symarr[1]}) Successfully backed up to"\
+                           "$(style_path ${symarr[1]}.dotfiles.back)"
+            elif $ADMIN mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
+                print_warn "....$(style_path ${symarr[1]}) Successfully backed up to"\
+                           "$(style_path ${symarr[1]}.dotfiles.back). Required sudo"
             else
-                print_err "Unable to backup ${symarr[1]}"
+                print_err "....Unable to backup $(syle_path ${symarr[1]})"
                 exit 1
             fi
         fi
         
         # Attempting to remove existing destination file
         if $ADMIN test -e "${symarr[1]}"; then
-            print_info "Attempting to remove old ${symarr[1]}"
+            print_info "....Attempting to remove old $(style_path ${symarr[1]})"
             if rm "${symarr[1]}" &>/dev/null; then
-                print_info "Successfully removed ${symarr[1]}"
+                print_info "....Successfully removed $(style_path ${symarr[1]})"
             elif $ADMIN rm "${symarr[1]}" &>/dev/null; then
-                print_warn "Successfully removed ${symarr[1]}. Required sudo"
+                print_warn "....Successfully removed $(style_path ${symarr[1]}). "\
+                           "Required sudo"
             else
-                print_err "Failed to removed ${symarr[1]}"
+                print_err "....Failed to removed $(style_path ${symarr[1]})"
             fi
         fi
 
-        print_info "Attempting to create symlink ${symarr[1]} -> ${symarr[0]}"
-
         if ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
-            print_info "Successfully created symlink"
+            print_info "....Successfully created symlink"
         elif $ADMIN ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
-            print_warn "Successfully created symlink. Required sudo"
+            print_warn "....Successfully created symlink. Required sudo"
         else 
-            print_err "Failed to create symlink"
+            print_err "....Failed to create symlink"
         fi
     done
 }
@@ -168,7 +174,7 @@ function check_installed() {
     if which $1 &>/dev/null; then
         return 0
     else
-        if $PCKMAN list | grep $1 &>/dev/null; then
+        if $PCKMAN list 2>/dev/null | grep $1 &>/dev/null; then
             return 0
         else
             return 1
@@ -312,6 +318,8 @@ export DOTFILES="$(pwd)"
     fi
 
     print_section "Executing Custom Commands"
+
+    exit
 
     # Installing Pwndbg
     print_info "Attempting to install Pwndbg; This may take a minute"
