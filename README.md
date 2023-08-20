@@ -7,14 +7,6 @@ Install desired software packages and setup relevant configuration files.
 - Linux
 
 ## Usage
-### Linux
 ```bash
-sudo ./dotfiles
+./install.sh
 ```   
-   
-### MacOS
-```bash
-./dotfiles
-```
-
-# Check dotfiles -h for flag usage

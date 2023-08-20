@@ -7,6 +7,7 @@ CYAN="\x1b\x5b1;96m"
 RED="\x1b\x5b1;91m"
 GREEN="\x1b\x5b1;92m"
 YELLOW="\x1b\x5b1;93m"
+MAGENTA="\x1b\x5b1;95m"
 BRIGHT_BLACK="\x1b\x5b1;3;90m"
 BLUE="\x1b\x5b1;3;94m"
 RES="\x1b\x5b0m"
@@ -24,7 +25,7 @@ function print_err() {
 }
 
 function print_section() {
-    echo -e "[${GREEN}SECTION${RES}] ----- ${GREEN}${@^^}${RES} -----"
+    echo -e "[${GREEN}SECTION${RES}] ----- ${GREEN}${@}${RES} -----"
 }
 
 function style_path() {
@@ -33,6 +34,10 @@ function style_path() {
 
 function emphasize_text() {
     echo -e "${BLUE}$@${RES}"
+}
+
+function highlight_text() {
+    echo -e "${MAGENTA}$@${RES}"
 }
 
 
@@ -61,15 +66,15 @@ function clone_repos() {
         # reverse the name back to normal text.  
         repo_name="$(echo "$repo_url" | rev | cut -d'/' -f1 | cut -d. -f 2 | rev)"
 
-        if $ADMIN test -d "/opt/${repo_name}"; then
-            print_warn "$(emphasize_text ${repo_name}) already exists. Skipping"
+        if sudo test -d "/opt/${repo_name}"; then
+            print_warn "$(highlight_text ${repo_name}) already exists. Skipping"
         else
             print_info "Attempting to clone ${repo_name} into /opt/${repo_name}"
-            if $ADMIN git clone -q $repo_url "/opt/${repo_name}"; then
+            if sudo git clone -q $repo_url "/opt/${repo_name}"; then
                 print_info "Successfully cloned ${repo_name}"
 
                 print_info "Attempting to chown /opt/${repo_name} to $USER ownership"
-                if $ADMIN chown -R $USER:$USER "/opt/${repo_name}"; then
+                if sudo chown -R $USER: "/opt/${repo_name}"; then
                     print_info "Successfully updated ownership"
                 else 
                     print_err "Failed to updated ownership. Aborting"
@@ -89,48 +94,49 @@ function create_syms() {
     for sym in "$@"; do
         symarr=($sym)
 
-        print_info "Attempting to create symlink, ${symarr[1]} -> ${symarr[0]}"
+        print_info "Attempting to create symlink,"\
+            "$(style_path ${symarr[1]}) $(style_path '->') $(style_path ${symarr[0]})"
 
-        if $ADMIN test -f "${symarr[1]}"; then
+        if sudo test -f "${symarr[1]}"; then
 
-            print_info "....$(style_path ${symarr[1]}) already exists but is not a symlink. "\
-                       "Attempting to back it up now"
+            print_warn "....$(style_path ${symarr[1]}) already exists but is"\
+                       "not a symlink. Attempting to back it up now"
                                    
             # Remove existing backup file if it exists
-            if $ADMIN test -f "${symarr[1]}.dotfiles.bak"; then
+            if sudo test -f "${symarr[1]}.dotfiles.bak"; then
                 print_info "....Found existing backup. Attempting to delete it."
                 if rm "${symarr[1]}.dotfiles.bak" &>/dev/null; then
                     print_info "....Deleted existing backup"
-                elif $ADMIN rm "${symarr[1]}.dotfiles.bak &>/dev/null" &>/dev/null; then
+                elif sudo rm "${symarr[1]}.dotfiles.bak" &>/dev/null; then
                     print_warn "....Deleted existing backup. Required sudo"
                 else 
                     print_warn "....Failed to delete existing backup. "\
                                "Not serious issue, you may want to manually "\
-                               "delete the backup $(style_path .${symarr[1]}.dotfiles.bak)"
+                               "delete the backup "\
+                               "$(style_path ${symarr[1]}.dotfiles.bak)"
                 fi
             fi
             
-            # Attempting backup
+            # Attempting backup of non symlink configuration files
             if mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then 
                 print_info "....$(style_path ${symarr[1]}) Successfully backed up to"\
                            "$(style_path ${symarr[1]}.dotfiles.back)"
-            elif $ADMIN mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
+            elif sudo mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
                 print_warn "....$(style_path ${symarr[1]}) Successfully backed up to"\
                            "$(style_path ${symarr[1]}.dotfiles.back). Required sudo"
             else
-                print_err "....Unable to backup $(syle_path ${symarr[1]})"
-                exit 1
+                print_warn "....Unable to backup $(syle_path ${symarr[1]})"
             fi
         fi
         
         # Attempting to remove existing destination file
-        if $ADMIN test -e "${symarr[1]}"; then
+        if sudo test -e "${symarr[1]}"; then
             print_info "....Attempting to remove old $(style_path ${symarr[1]})"
             if rm "${symarr[1]}" &>/dev/null; then
                 print_info "....Successfully removed $(style_path ${symarr[1]})"
-            elif $ADMIN rm "${symarr[1]}" &>/dev/null; then
-                print_warn "....Successfully removed $(style_path ${symarr[1]}). "\
-                           "Required sudo"
+            elif sudo rm "${symarr[1]}" &>/dev/null; then
+                print_warn "....Successfully removed "\
+                           "$(style_path ${symarr[1]}). Required sudo"
             else
                 print_err "....Failed to removed $(style_path ${symarr[1]})"
             fi
@@ -138,7 +144,7 @@ function create_syms() {
 
         if ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
             print_info "....Successfully created symlink"
-        elif $ADMIN ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
+        elif sudo ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
             print_warn "....Successfully created symlink. Required sudo"
         else 
             print_err "....Failed to create symlink"
@@ -152,17 +158,18 @@ function create_dirs() {
 
     for dir in ${arr[@]}; do
 
-        if $ADMIN test -d "${dir}"; then
-            print_info "${dir} already exists"
+        if sudo test -d "${dir}"; then
+            print_warn "$(style_path ${dir}) already exists. Skipping.."
         else
-            print_info "Attempting to create ${dir}"
+            print_info "Attempting to create $(style_path ${dir})"
 
             if mkdir -p "${dir}"; then
-                print_info "Created ${dir}"
-            elif $ADMIN mkdir -p "${dir}" &>/dev/null; then
-                print_warn "Created ${dir}.. Required sudo"
+                print_info "Created $(style_path ${dir})"
+            elif sudo mkdir -p "${dir}" &>/dev/null; then
+                print_warn "Created $(style_path ${dir}).. Required sudo"
             else
-                print_info "Unable to create ${dir}.."
+                print_err "Unable to create $(style_path ${dir}).."
+                exit 1
             fi
         fi
     done
@@ -182,24 +189,26 @@ function check_installed() {
     fi
 }
 
-# Given a list of dependencies, install them using: PCKMAN, OPTIONS, ADMIN and CHECK
+# Given a list of dependencies, install them using: PCKMAN, OPTIONS
 function install_deps() {
     arr=("$@")
 
     for dep in ${arr[@]}; do
         if check_installed "${dep}"; then
-            print_info "${dep} is already installed"
+            print_info "$(highlight_text ${dep}) is already installed"
             continue
         fi 
         print_info "Attempting to install ${dep}"
-        if $ADMIN$PCKMAN install $OPTIONS ${dep} &>/dev/null; then
-            print_info "Successfully installed ${dep}"
+        if $PCKMAN install $OPTIONS ${dep} &>/dev/null; then
+            print_info "Successfully installed $(highlight_text ${dep})"
         else
             if check_installed "${dep}"; then
-                print_warn "Non terminal issue encountered while installing ${dep}" \
-                            ", it was still abled to be installed"
+                print_warn "Non terminal issue encountered while installing"\
+                           "$(highlight_text ${dep}), it was still abled to be"\
+                           " installed"
             else
-                print_err "Failed to install ${dep}, check the output. Exiting.."
+                print_err "Failed to install $(highlight_text ${dep}), check "\
+                          "the output. Exiting.."
             fi
         fi
     done
@@ -214,19 +223,21 @@ function main() {
     if test "$(uname)" = "Darwin"; then 
         OS="MacOS"
         PCKMAN="brew"
+        if test "$(uname -m)" = "arm64"; then
+            ARM="arm64"
+        fi
     else
         OS="Linux"
-        PCKMAN="apt"
+        PCKMAN="sudo apt"
         OPTIONS="-y"
-        ADMIN="sudo"
     fi
 
-    print_info "OS is: ${OS}"
-    print_info "Using ${PCKMAN} package manager"
+    print_info "OS is: $(highlight_text ${OS})"
+    print_info "Using $(highlight_text ${PCKMAN}) package manager"
 
     print_section "Setting up DOTFILES Environment Variable"
 export DOTFILES="$(pwd)"
-    print_info "DOTFILES=${DOTFILES}"
+    print_info "DOTFILES=$(style_path ${DOTFILES})"
     print_info "Attempting to update DOTFILES variable in zshrc"
 
     if sed -E -i.dotfiles.bak s@DOTFILES=.\*@DOTFILES=\"${DOTFILES}\"@g zshrc; then
@@ -235,7 +246,6 @@ export DOTFILES="$(pwd)"
         print_err "Failed to updated DOTFILES environment variable in zshrc"
         exit 1
     fi 
-
 
     # Install Homebrew if on MacOS and It isn't already installed
     # -z True if length of string is 0.
@@ -258,11 +268,14 @@ export DOTFILES="$(pwd)"
     local deps_linux_only=("i3")
     local deps_agnostic=("curl" "zsh" "neovim" "pip")
     
+    print_info "$(emphasize_text Installing Platform Agnostic Dependencies)"
     install_deps ${deps_agnostic[@]}
 
     if test "$OS" = "MacOS"; then
+        print_info "$(emphasize_text Installing Mac Only Dependencies)"
         install_deps ${deps_mac_only[@]}
     else
+        print_info "$(emphasize_text Installing Linux Only Dependencies)"
         install_deps ${deps_linux_only[@]}
     fi
 
@@ -272,11 +285,14 @@ export DOTFILES="$(pwd)"
     local dirs_linux_only=("/root/.config/nvim/" "${HOME}/.config/i3")
     local dirs_agnostic=("${HOME}/.config/nvim")
 
+    print_info "$(emphasize_text Creating Platform Agnostic Directories)"
     create_dirs ${dirs_agnostic[@]}
 
     if test "$OS" = "MacOS"; then
+        print_info "$(emphasize_text Creating Mac Only Directories)"
         create_dirs "${dirs_mac_only[@]}"
     else
+        print_info "$(emphasize_text Creating Linux Only Directories)"
         create_dirs "${dirs_linux_only[@]}"
     fi
 
@@ -292,42 +308,55 @@ export DOTFILES="$(pwd)"
 
 
     # Double quotes needed to prevent splitting of source and dest parts of string
-    print_info "Creating Platform Agnostic Symlinks"
+    print_info "$(emphasize_text Creating Platform Agnostic Symlinks)"
     create_syms "${syms_agnostic[@]}"
 
     if test "$OS" = "MacOS"; then
-        print_info "Creating Mac Only Symlinks"
+        print_info "$(emphasize_text Creating Mac Only Symlinks)"
         create_syms "${syms_mac_only[@]}"
     else
-        print_info "Creating Linux Only Symlinks"
+        print_info "$(emphasize_text Creating Linux Only Symlinks)"
         create_syms "${syms_linux_only[@]}"
     fi
 
     # Installing Github Repos to be installed in /opt
     print_section "Cloning Repositories"
     local repos_mac_only=()
+    local repos_arm_only=()
+    local repos_intel_only=("https://github.com/pwndbg/pwndbg.git")
     local repos_linux_only=()
-    local repos_agnostic=("https://github.com/pwndbg/pwndbg.git")
+    local repos_agnostic=()
 
+    print_info "$(emphasize_text Cloning Platform Agnostic Repositories)"
     clone_repos "${repos_agnostic[@]}"
 
     if test "$OS" = "MacOS"; then
+        print_info "$(emphasize_text Cloning Mac Only Repositories)"
         clone_repos "${repos_mac_only[@]}"
+        if test -n "$ARM"; then
+            print_info "$(emphasize_text Cloning ARM Mac Only Repositories)"
+            clone_repos "${repos_arm_only[@]}"
+        else
+            print_info "$(emphasize_text Cloning Intel Mac Only Repositories)"
+            clone_repos "${repos_arm_only[@]}"
+        fi
+
     else
+        print_info "$(emphasize_text Cloning Linux Only Repositories)"
         clone_repos "${repos_linux_only[@]}"
     fi
 
     print_section "Executing Custom Commands"
 
-    exit
-
     # Installing Pwndbg
-    print_info "Attempting to install Pwndbg; This may take a minute"
-    if cd /opt/pwndbg && ./setup.sh --update &>/dev/null; echo y | ./setup.sh &>/dev/null; then
-        print_info "Successfully installed Pwndbg"
-    else 
-        print_err "Failed to install Pwndbg, Aborting"
-        exit 1
+    if test -z "$ARM"; then
+        print_info "Attempting to install Pwndbg; This may take a minute"
+        if cd /opt/pwndbg && ./setup.sh --update &>/dev/null; echo y | ./setup.sh &>/dev/null; then
+            print_info "Successfully installed Pwndbg"
+        else 
+            print_err "Failed to install Pwndbg, Aborting"
+            exit 1
+        fi
     fi
 }
 
