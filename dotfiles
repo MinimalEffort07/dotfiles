@@ -2,8 +2,6 @@
 
 # TODO:
 #    - Vim Dictionary
-#    - Alias using $DOTFILES
-#    - Backup Existing ZSH
 #    - Handle Vim-Plug
 #    - Copy dotfiles into /usr/bin if its not already there and exec zsh
 #    - Provide option to not exec zsh at end of script
@@ -13,12 +11,17 @@
 #    - Display 'dotfiles' ASCII art once script finishes and in help screen. 
 
 import argparse 
-import shutil
 import subprocess
 import re
 import tempfile
 
 from platform import platform
+from shutil import (
+        copystat,
+        copy,
+        move,
+        which,
+)
 
 from os import (
         environ,
@@ -67,8 +70,8 @@ def sed_inplace(filename, pattern, repl) -> int:
                 for line in src_file:
                     tmp_file.write(pattern_compiled.sub(repl, line))
 
-        shutil.copystat(filename, tmp_file.name)
-        shutil.move(tmp_file.name, filename)
+        copystat(filename, tmp_file.name)
+        move(tmp_file.name, filename)
     except:
         return 1
 
@@ -162,7 +165,7 @@ else:
 
 if not args.skip_install:
     # If mac and brew isn't installed, install it. 
-    if OS == "mac" and not shutil.which('brew'):
+    if OS == "mac" and not which('brew'):
         print_warn('Couldn\'t find Homebrew, Attempting To Install Homebrew')
         homebrew = subprocess.run(
             [
@@ -202,7 +205,7 @@ if not args.skip_install:
             print_warn(f"{install_obj} Not Required On {OS}, Skipping..")
             continue
 
-        if not shutil.which(executable) and OS != bad_os:
+        if not which(executable) and OS != bad_os:
 
             print_warn(f"{executable} Was Not Found.. Attempting To Install {install_obj}")
 
@@ -260,6 +263,8 @@ SYMLINKS = [
     ("zshrc", f"{HOME_DIR}/.zshrc", None),                      # zshrc 
 ]
 
+BACKUP_SUFFIX = ".dotfiles_bak"
+
 for (src, dest, bad_os) in SYMLINKS:
 
     if bad_os == OS:
@@ -269,46 +274,16 @@ for (src, dest, bad_os) in SYMLINKS:
     try:
         symlink(abspath(src), abspath(dest))
         print_info(f"Created Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
-    except:
+    except FileExistsError:
         if not args.force_sym_create:
             print_err(f"Couldn't Create Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
             exit(1)
 
-        if not exists(dest):
-            print_err(f"Couldn't force recreate Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
-            exit(1)
+        if exists(dest+BACKUP_SUFFIX):
+            print_warn(f"Found Existing Backup File At: \"{style_path(dest+BACKUP_SUFFIX)}\", Removing It..")
+            remove(dest+BACKUP_SUFFIX)
 
+        print_info(f"Creating New Backup File At: \"{style_path(dest+BACKUP_SUFFIX)}\"")
+        copy(dest, dest+BACKUP_SUFFIX)
         remove(dest)
         symlink(abspath(src), abspath(dest))
-"""
-mkdir -p ~/.config/nvim 2> /dev/null
-
-if ! [ -f ~/.config/nvim/init.vim_pre_dotfile_install ] 
-then
-    mv ~/.config/nvim/init.vim ~/.config/nvim/init.vim.pre_dotfile_install
-fi 
-
-if ! [ -f ~/.vimrc.vim_pre_dotfile_install ] 
-then
-    mv ~/.vimrc ~/.vimrc.pre_dotfile_install
-fi
-
-cp .vimrc ~/.vimrc
-ln -s ~/.vimrc ~/.config/nvim/init.vim
-
-if ! [ -s ~/.local/share/nvim/site/autoload/plug.vim ]
-then 
-    echo "vim plug doesn't exists downloading"
-
-    sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
-       https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
-fi
-
-if ! [ -f ~/.zshrc.vim_pre_dotfile_install ] 
-then
-    mv ~/.zshrc ~/.zshrc.pre_dotfile_install
-fi
-cp .zshrc ~/.zshrc
-
-exec zsh
-"""

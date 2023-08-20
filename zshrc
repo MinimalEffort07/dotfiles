@@ -48,9 +48,10 @@ setopt PROMPT_SUBST
 #
 # NOTE: If further explanation is required search up 'zsh prompt expansion'
 #
-export PROMPT='%B%F{$((($RANDOM % 255)))}%S %s %n%F{clear}%b%B[%2~]${vcs_info_msg_0_}%b%# '
+export PROMPT='%B%F{$((($RANDOM % 255)))}%S %s%n%F{clear}%b%B[%2~]${vcs_info_msg_0_}%b%# '
 export RPROMPT='%(?..[%B%F{red}%?%F{clear}%b] )'
 export DOTFILES="/Users/emmanuelchristianos/projects/minimaleffort/dotfiles"
+
 # Aliases
 alias zshrc="vim $HOME/.zshrc"
 alias sourcezsh="source $HOME/.zshrc"
