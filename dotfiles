@@ -172,19 +172,28 @@ if not args.skip_install:
 # [ INSTALLING DEPENDENCIES AS PACKAGES ]
 #
 #   Dependencies are in the format of: 
-#       (name_of_executable, name_of_package_it_resides_in or None) 
-#       e.g. (nvim, neovim) or (zsh, None)
+#       (name_of_executable,
+#        name_of_package_it_resides_in or None,
+#        os_not_to_install_on or None) 
+#
+#       e.g. (nvim, neovim, None) or (i3, None, mac)
 #
 DEPENDENCIES = [ 
-    ("zsh", None), 
-    ("nvim", "neovim"),
-    ("i3", None),
+    ("zsh", None, None), 
+    ("nvim", "neovim", None),
+    ("i3", None, "mac"),
 ]
 
 if not args.skip_install:
-    for (executable, package) in DEPENDENCIES:
-        if not shutil.which(executable):
-            install_obj = executable if not package else package
+    for (executable, package, bad_os) in DEPENDENCIES:
+
+        install_obj = executable if not package else package
+
+        if bad_os == OS:
+            print_warn(f"{install_obj} Not Required On {OS}, Skipping..")
+            continue
+
+        if not shutil.which(executable) and OS != bad_os:
 
             print_warn(f"{executable} Was Not Found.. Attempting To Install {install_obj}")
 
@@ -204,32 +213,54 @@ if not args.skip_install:
         else:
             print_info(f"{executable} Already Installed")
 
-exit(1)
-
 # [ CREATING REQUIRED CONFIGURATION DIRECTORIES ]
+#
+#   Configuration directories are in the format of: 
+#       (directory_path, os_not_to_create_on or None) 
+#
+#       e.g. ("~/.config/nvim", None) or ("/root/.config/i3", mac)
 
-CONFIG_DIRS = [ "~/.config/nvim/", "/root/.config/nvim/", "~/.config/i3/" ]
+CONFIG_DIRS = [ ("~/.config/nvim/", None),
+                ("/root/.config/nvim/", "mac"),
+                ("~/.config/i3/", "mac") ]
 
-for config_dir in CONFIG_DIRS:
-    # Don't bother checking if directories already exit.
-    # mkdir an existing directory is safe.
-    makedirs(config_dir)
+for (config_dir, bad_os) in CONFIG_DIRS:
+    if bad_os == OS:
+        print_warn(f"Not Creating Directory: \"{style_path(config_dir)}\" on {OS}")
+        continue
+
+    try:
+        mkdir = makedirs(config_dir)
+        print_info(f"Created Directory: \"{style_path(config_dir)}\"")
+    except FileExistsError:
+        print_warn(f"Attempted To Make Directory: \"{style_path(config_dir)}\" But It Already Exists")
 
 # [ CREATING SYMLINKS ]
+#
+#   Symlinks are in the format of: 
+#       (source, destination, os_not_to_create_on) 
+#
+#   NOTE: That all source paths will have the value of $DOTFILES prepended to it
+#       e.g. ("init.vim", "~/.config/nvim", None) or 
+#            ("init.vim", "/root/.config/nvim", mac)
 
-# Symlinks should follow the form, (source, destination)
-# The source will have the $DOTFILES environment variables prepended to it 
-# before creation.
 SYMLINKS = [ 
-    ("init.vim", "~/.config/nvim/init.vim"),        # USER init.vim
-    ("init.vim", "/root/.config/nvim/init.vim"),    # ROOT init.vim
-    ("i3_config", "~/.config/i3/config"),           # i3 config 
-    (".zshrc", "~/.zshrc"),                         # zshrc 
+    ("init.vim", "~/.config/nvim/init.vim", None),                # USER init.vim
+    ("init.vim", "/root/.config/nvim/init.vim", "mac"),     # ROOT init.vim
+    ("i3_config", "~/.config/i3/config", "mac"),            # i3 config 
+    (".zshrc", "~/.zshrc", None),                                 # zshrc 
 ]
 
-for (src, dest) in SYMLINKS:
-    print(f'{environ["DOTFILES"]}/{src}', dest)
+for (src, dest, bad_os) in SYMLINKS:
 
+    if bad_os == OS:
+        print_warn(f"Not Creating Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\" on {bad_os}")
+        continue
+
+    try:
+        print_info(f"Created Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
+    except:
+        print_err(f"Couldn't Create Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
 
 """
 mkdir -p ~/.config/nvim 2> /dev/null
