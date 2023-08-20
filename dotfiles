@@ -1,32 +1,30 @@
 #!/usr/bin/env python3
 
-# Copy over vim dictionary so that I don't have keep rebuilding the dictionary 
-# on different computers. 
-
-# OS Dependant installs as well as aliases like options for ls. 
-
-# Make ~/.zshrc be a symlink to the file in this directory and make the zshrc 
-# alias open the file in the folder. 
-
-# Create a DOTFILE env so that we can reference this folders location.
-
-# Should backup exisintg .zshrc before replacing with repo/.zshrc
-
-# Should copy over i3/config as well. 
-
-# Prerequisites
-# neovim
-# vim-plug 
+# TODO:
+#    - Vim Dictionary
+#    - Alias using $DOTFILES
+#    - Backup Existing ZSH
+#    - Handle Vim-Plug
+#    - Copy dotfiles into /usr/bin if its not already there and exec zsh
+#    - Provide option to not exec zsh at end of script
+#    - Provide 'check' setup option which will give a status of what 
+#      dependencies are already installed and which aren't, which symlinks have
+#      been created and which haven't etc. 
+#    - Display 'dotfiles' ASCII art once script finishes and in help screen. 
 
 import argparse 
 import shutil
+import subprocess
+import re
+import tempfile
 
 from platform import platform
+
 from os import (
-        system,
         environ,
         path,
-        mkdirs,
+        makedirs,
+        symlink,
 )
 
 from os.path import (
@@ -38,6 +36,41 @@ from colorama import (
         Fore,
         Style,
 )
+
+def print_info(text):
+    print(f"[{Fore.LIGHTBLUE_EX}INFO{Style.RESET_ALL}] {text}")
+
+def print_warn(text):
+    print(f"[{Fore.YELLOW}WARN{Style.RESET_ALL}] {text}")
+
+def print_err(text):
+    print(f"[{Fore.RED}ERROR{Style.RESET_ALL}] {text}")
+
+def print_verbose(text):
+    print(f"[{Fore.GREEN}VERBOSE{Style.RESET_ALL}] {text}")
+
+def style_path(text) -> str:
+    return f'{Fore.GREEN}{text}{Style.RESET_ALL}'
+
+def sed_inplace(filename, pattern, repl) -> int:
+    '''
+    Perform the pure-Python equivalent of in-place `sed` substitution: e.g.,
+    `sed -i -e 's/'${pattern}'/'${repl}' "${filename}"`.
+    '''
+    try:
+        pattern_compiled = re.compile(pattern)
+        
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp_file:
+            with open(filename) as src_file:
+                for line in src_file:
+                    tmp_file.write(pattern_compiled.sub(repl, line))
+
+        shutil.copystat(filename, tmp_file.name)
+        shutil.move(tmp_file.name, filename)
+    except:
+        return 1
+
+    return 0
 
 description = f"""
 Sets up Linux/MacOS machine with preferred software and configuration by:
@@ -81,7 +114,6 @@ parser.add_argument('--skip-install',
 
 args = parser.parse_args()
 
-
 # [ DETERMINING OS ]
 
 # Determine operating system so we can use appropriate package manager
@@ -89,74 +121,117 @@ args = parser.parse_args()
 # ever start using Fedora?!
 
 OS = "mac" if platform()[:5].lower() == "macos" else "linux"
+
+print_info(f"{OS.upper()} Operating System Detected")
+
 PACKAGE_MANAGER = "brew" if OS == "mac" else "sudo apt"
+
+print_info(f"Using '{PACKAGE_MANAGER}' Package Manager")
 
 # [ SETTING UP DOTFILES ENVIRONMENT VARIABLE ]
 
 environ["DOTFILES"] = dirname(abspath(__file__))
 
+if not environ["DOTFILES"]:
+    print_err("Failed To Set $DOTFILES Environment Variable")
+    exit(1)
+else:
+    print_info(f'Set $DOTFILES Environment Variable To: \"{style_path(environ["DOTFILES"])}\"')
+
 # This updates the 'export DOTFILES=/path/to/dotfiles/repo/ with its new 
 # location on this machine.
-system(f'sed -Ei s@DOTFILES=.*@DOTFILES=\\"{environ["DOTFILES"]}\\"@g {environ["DOTFILES"]}/.zshrc')
+sed = sed_inplace(f'{environ["DOTFILES"]}/.zshrc', 'DOTFILES=.*', f'DOTFILES=\"{environ["DOTFILES"]}\"')
+
+if sed:
+    print_err("Failed To Perform SED Substitution Of DOTFILES Environment Variable\n\n"
+              + f"\t{sed}")
+    exit(sed)
+else:
+    print_info(f'Updates $DOTFILES Environment Variable In .zshrc')
 
 # [ SETUP PACKAGE MANAGER ]
 
 if not args.skip_install:
     # If mac and brew isn't installed, install it. 
     if OS == "mac" and not shutil.which('brew'):
-        system("/bin/bash -c '$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)'")
+        print_warn('Couldn\'t find Homebrew, Attempting To Install Homebrew')
+        homebrew = subprocess.run(
+            [
+                '/bin/bash',
+                '-c',
+                '"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+            ],
+            capture_output=True)
+        
+        if homebrew.returncode:
+            print_err(f"Failed To Install Homebrew\n\n\t{homebrew.stderr.decode('utf-8')}")
+            exit(homebrew.returncode)
+        else:
+            print_info(f"Installed Homebrew")
 
-# [ INSTALLING SOFTWARE PREREQUISITES ]
-
-# Dependencies are in the format of: 
-#   (name_of_executable, name_of_package_it_resides_in)
-# e.g. (nvim, neovim)
+# [ INSTALLING DEPENDENCIES AS PACKAGES ]
+#
+#   Dependencies are in the format of: 
+#       (name_of_executable, name_of_package_it_resides_in or None) 
+#       e.g. (nvim, neovim) or (zsh, None)
+#
 DEPENDENCIES = [ 
-    ("zsh",), 
+    ("zsh", None), 
     ("nvim", "neovim"),
-    ("i3",),
+    ("i3", None),
 ]
 
 if not args.skip_install:
     for (executable, package) in DEPENDENCIES:
         if not shutil.which(executable):
-            system(f"{PACKAGE_MANAGER} install {executable if not package}")
+            install_obj = executable if not package else package
+
+            print_warn(f"{executable} Was Not Found.. Attempting To Install {install_obj}")
+
+            pkg = subprocess.run(
+                [
+                    f'{PACKAGE_MANAGER}',
+                    'install',
+                    f'{install_obj}'
+                ],
+                capture_output=True)
+
+            if pkg.returncode:
+                print_err(f"Failed To Install {install_obj}\n\n\t{pkg.stderr.decode('utf-8')}")
+                exit(pkg.returncode)
+            else:
+                print_info(f"Installed {install_obj}")
+        else:
+            print_info(f"{executable} Already Installed")
+
+exit(1)
 
 # [ CREATING REQUIRED CONFIGURATION DIRECTORIES ]
 
-NVIM_CONFIG = "~/.config/nvim"
-NVIM_CONFIG_ROOT = "/root/.config/nvim"
-I3_CONFIG = "~/.config/i3"
-
-
-CONFIG_DIRS = [ NVIM_CONFIG, NVIM_CONFIG_ROOT, I3_CONFIG ]
+CONFIG_DIRS = [ "~/.config/nvim/", "/root/.config/nvim/", "~/.config/i3/" ]
 
 for config_dir in CONFIG_DIRS:
-    # Don't bother checking if they already exists, it is not harmful to attempt
-    # to mkdir an existing directory.
-    mkdirs(config_dir)
+    # Don't bother checking if directories already exit.
+    # mkdir an existing directory is safe.
+    makedirs(config_dir)
+
+# [ CREATING SYMLINKS ]
+
+# Symlinks should follow the form, (source, destination)
+# The source will have the $DOTFILES environment variables prepended to it 
+# before creation.
+SYMLINKS = [ 
+    ("init.vim", "~/.config/nvim/init.vim"),        # USER init.vim
+    ("init.vim", "/root/.config/nvim/init.vim"),    # ROOT init.vim
+    ("i3_config", "~/.config/i3/config"),           # i3 config 
+    (".zshrc", "~/.zshrc"),                         # zshrc 
+]
+
+for (src, dest) in SYMLINKS:
+    print(f'{environ["DOTFILES"]}/{src}', dest)
 
 
 """
-#!/bin/zsh
-# This file is hot garbage, assume you will lose some files
-
-os=$(uname)
-
-nvim --version 2> /dev/null
-
-# Does OS dependant install
-
-if [ $? -ne 0 ]
-then 
-    if [ $os = "Darwin" ]
-    then
-        brew install neovim
-    else
-        sudo apt install neovim -y
-    fi 
-fi
-
 mkdir -p ~/.config/nvim 2> /dev/null
 
 if ! [ -f ~/.config/nvim/init.vim_pre_dotfile_install ] 
