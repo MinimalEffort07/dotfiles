@@ -18,7 +18,7 @@ function print_warn() {
     echo -e "[${YELLOW}WARN${RES}] $@"
 }
 
-function jprint_err() {
+function print_err() {
     echo -e "[${RED}ERROR${RES}] $@"
 }
 
@@ -40,6 +40,55 @@ function dotfiles_bannner() {
         ██╔╝  ██║  ██║██║   ██║   ██║   ██╔══╝  ██║██║     ██╔══╝  ╚════██║
     ██╗██╔╝   ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║
     ╚═╝╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝\x0a"
+}
+
+function custom_command() {
+
+    arr=("$@")
+    for custom_command in "$@"; do
+        echo $custom_command
+        print_info "Attempting to run ${custom_command}"
+        if $custom_command; then
+            print_info "Custom command succeeded"
+        else
+            print_err "Custom command failed. Aborting"
+        fi
+    done
+}
+
+function clone_repos() {
+
+    arr=("$@")
+    for repo_url in "$@"; do
+        # We want to obtain repo name which will always be .../<name_here>.git
+        # since names can't have forward slashes in them we can split the URL 
+        # by slashes using cut however, we don't know how many fields there are
+        # so we reverse the URL first, making the name be the first field and 
+        # we split on '/', get the first element which will be tig.<name_in_rev>
+        # we split again but on '.' and take the second field i.e. the name and
+        # reverse the name back to normal text.  
+        repo_name="$(echo "$repo_url" | rev | cut -d'/' -f1 | cut -d. -f 2 | rev)"
+
+        if $ADMIN test -d "/opt/${repo_name}"; then
+            print_warn "${repo_name} already exists"
+        else
+            print_info "Attempting to clone ${repo_name} into /opt/${repo_name}"
+            if $ADMIN git clone -q $repo_url "/opt/${repo_name}"; then
+                print_info "Successfully cloned ${repo_name}"
+
+                print_info "Attempting to chown /opt/${repo_name} to $USER ownership"
+                if $ADMIN chown -R $USER:$USER "/opt/${repo_name}"; then
+                    print_info "Successfully updated ownership"
+                else 
+                    print_err "Failed to updated ownership. Aborting"
+                    exit 1
+                fi
+            else
+                    print_err "Failed to clone ${repo_name} repo. Aborting"
+                    exit 1
+            fi
+        fi
+    done
 }
 
 function create_syms() {
@@ -226,7 +275,7 @@ export DOTFILES="$(pwd)"
 
     print_section "Creating Directories"
 
-    local dirs_mac_only=("")
+    local dirs_mac_only=()
     local dirs_linux_only=("/root/.config/nvim/" "${HOME}/.config/i3")
     local dirs_agnostic=("${HOME}/.config/nvim")
 
@@ -240,12 +289,13 @@ export DOTFILES="$(pwd)"
 
     print_section "Creating Symlinks"
 
-    local syms_mac_only=("")
+    local syms_mac_only=()
     local syms_linux_only=("${DOTFILES}/init.vim /root/.config/nvim/init.vim"
                            "${DOTFILES}/i3_config ${HOME}/.config/i3/config")
 
     local syms_agnostic=("${DOTFILES}/zshrc ${HOME}/.zshrc"
-                         "${DOTFILES}/init.vim ${HOME}/.config/nvim/init.vim")
+                         "${DOTFILES}/init.vim ${HOME}/.config/nvim/init.vim"
+                         "${DOTFILES}/gdbinit ${HOME}/.gdbinit")
 
 
     # Double quotes needed to prevent splitting of source and dest parts of string
@@ -255,6 +305,34 @@ export DOTFILES="$(pwd)"
         create_syms "${syms_mac_only[@]}"
     else
         create_syms "${syms_linux_only[@]}"
+    fi
+
+    # Installing Github Repos to be installed in /opt
+    print_section "Cloning Repositories"
+    local repos_mac_only=()
+    local repos_linux_only=()
+    local repos_agnostic=("https://github.com/pwndbg/pwndbg.git")
+
+    clone_repos "${repos_agnostic[@]}"
+
+    if test "$OS" = "Darwin"; then
+        clone_repos "${repos_mac_only[@]}"
+    else
+        clone_repos "${repos_linux_only[@]}"
+    fi
+
+    print_section "Executing Custom Commands"
+
+    local custom_com_mac_only=()
+    local custom_com_linux_only=()
+    local custom_com_agnostic=("ls")
+
+    custom_command "${custom_com_agnostic[@]}"
+
+    if test "$OS" = "Darwin"; then
+        custom_command "${custom_com_mac_only[@]}"
+    else
+        custom_command "${custom_com_linux_only[@]}"
     fi
 }
 
