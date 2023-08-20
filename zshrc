@@ -55,15 +55,17 @@ export RPROMPT='%(?..[%B%F{red}%?%F{white}%b])'
 export TERM=xterm-256color
 export PAGER=less
 export EDITOR=nvim
-export DOTFILES="/Users/emmanuelchristianos/projects/minimaleffort/dotfiles"
+export DOTFILES="/home/minimaleffort/projects/minimaleffort/dotfiles"
 #export PATH="/usr/local/opt/binutils/bin:$PATH"
 
 # Aliases
-alias zshrc="vim $DOTFILES/zshrc"
-alias sourcezsh="source $DOTFILES/zshrc"
-alias vimrc="vim $DOTFILES/init.vim"
+alias zshrc="vim ~/.zshrc"
+alias vimrc="vim ~/.config/nvim/init.vim"
+alias gdbinit="vim ~/.gdbinit"
 
+alias sourcezsh="source ~/.zshrc"
 alias venv="source .v/bin/activate"
+
 alias dotfiles="cd ${DOTFILES}"
 
 alias c="clear"
@@ -76,6 +78,7 @@ alias celar="clear"
 if [[ "$(uname)" = "Darwin" ]]
 then
     alias ls="gls -1c --color -Fv"
+    alias sed="gsed"
 else
     alias ls="ls -1c --color -Fv"
 fi
@@ -92,8 +95,6 @@ alias vi="nvim"
 alias vim="nvim"
 
 alias gr="grep -inRI --color"
-
-alias sed="gsed"
 
 alias g="git"
 alias gst="git status"
