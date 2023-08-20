@@ -2,13 +2,6 @@
 
 # TODO:
 #    - Vim Dictionary
-#    - Handle Vim-Plug
-#    - Copy dotfiles into /usr/bin if its not already there and exec zsh
-#    - Provide option to not exec zsh at end of script
-#    - Provide 'check' setup option which will give a status of what 
-#      dependencies are already installed and which aren't, which symlinks have
-#      been created and which haven't etc. 
-#    - Display 'dotfiles' ASCII art once script finishes and in help screen. 
 
 import argparse 
 import subprocess
@@ -59,8 +52,8 @@ def print_warn(text):
 def print_err(text):
     print(f"[{Fore.RED}ERROR{Style.RESET_ALL}] {text}")
 
-def print_verbose(text):
-    print(f"[{Fore.GREEN}VERBOSE{Style.RESET_ALL}] {text}")
+def print_headers(text):
+    print(f"[{Fore.GREEN}SECTION{Style.RESET_ALL}] {text}")
 
 def style_path(text) -> str:
     return f'{Fore.GREEN}{text}{Style.RESET_ALL}'
@@ -139,6 +132,8 @@ args = parser.parse_args()
 # Currently only support Debian package manager for Linux.. Will update if I
 # ever start using Fedora?!
 
+print_headers(" [ Determining Operating System ] ")
+
 OS = "mac" if platform()[:5].lower() == "macos" else "linux"
 
 print_info(f"{OS.upper()} Operating System Detected")
@@ -148,6 +143,8 @@ PACKAGE_MANAGER = "brew" if OS == "mac" else "sudo apt"
 print_info(f"Using '{PACKAGE_MANAGER}' Package Manager")
 
 # [ SETTING UP DOTFILES ENVIRONMENT VARIABLE ]
+
+print_headers(" [ Setting Up Environment Variables ] ")
 
 environ["DOTFILES"] = dirname(abspath(__file__))
 HOME_DIR = environ["HOME"] 
@@ -174,6 +171,7 @@ else:
 if not args.skip_install:
     # If mac and brew isn't installed, install it. 
     if OS == "mac" and not which('brew'):
+        print_headers(" [ Setting Up Package Manager ] ")
         print_warn('Couldn\'t find Homebrew, Attempting To Install Homebrew')
         homebrew = subprocess.run(
             [
@@ -190,7 +188,6 @@ if not args.skip_install:
             print_info(f"Installed Homebrew")
 
 # [ INSTALLING DEPENDENCIES AS PACKAGES ]
-#
 #   Dependencies are in the format of: 
 #       (name_of_executable,
 #        name_of_package_it_resides_in or None,
@@ -199,6 +196,7 @@ if not args.skip_install:
 #
 #       e.g. (nvim, neovim, None, None) or (i3, None, mac, None)
 #
+
 DEPENDENCIES = [ 
     ("zsh", None, None, None), 
     ("nvim", "neovim", None, None),
@@ -207,6 +205,7 @@ DEPENDENCIES = [
 ]
 
 if not args.skip_install:
+    print_headers(" [ Installing Dependencies ] ")
     for (executable, package, bad_os, command) in DEPENDENCIES:
 
         install_obj = executable if not package else package
@@ -244,7 +243,9 @@ if not args.skip_install:
             print_info(f"Installed {install_obj}")
 
 # [ CREATING REQUIRED CONFIGURATION DIRECTORIES ]
-#
+
+print_headers(" [ Creating Required Configuration Directories ] ")
+
 #   Configuration directories are in the format of: 
 #       (directory_path, os_not_to_create_on or None) 
 #
@@ -256,7 +257,7 @@ CONFIG_DIRS = [ (f"{HOME_DIR}/.config/nvim/", None),
 
 for (config_dir, bad_os) in CONFIG_DIRS:
     if bad_os == OS:
-        print_warn(f"Not Creating Directory: \"{style_path(config_dir)}\" on {OS}")
+        print_warn(f"Not Creating Directory: \"{style_path(config_dir)}\" on {OS.upper()}")
         continue
 
     try:
@@ -266,7 +267,9 @@ for (config_dir, bad_os) in CONFIG_DIRS:
         print_warn(f"Attempted To Make Directory: \"{style_path(config_dir)}\" But It Already Exists")
 
 # [ CREATING SYMLINKS ]
-#
+
+print_headers(" [ Creating Configuration File Symlinks ] ")
+
 #   Symlinks are in the format of: 
 #       (source, destination, os_not_to_create_on) 
 #
@@ -286,12 +289,12 @@ BACKUP_SUFFIX = ".dotfiles_bak"
 for (src, dest, bad_os) in SYMLINKS:
 
     if bad_os == OS:
-        print_warn(f"Not Creating Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\" on {bad_os}")
+        print_warn(f"Not Creating Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\" on {OS.upper()}")
         continue
     
     try:
+        print_info(f"Attempting To Create Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
         symlink(abspath(src), abspath(dest))
-        print_info(f"Created Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
     except FileExistsError:
         if not args.force_sym_create:
             print_err(f"Couldn't Create Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
@@ -302,6 +305,7 @@ for (src, dest, bad_os) in SYMLINKS:
             remove(dest+BACKUP_SUFFIX)
 
         print_info(f"Creating New Backup File At: \"{style_path(dest+BACKUP_SUFFIX)}\"")
-        copy(dest, dest+BACKUP_SUFFIX)
-        remove(dest)
+        copy(abspath(dest), abspath(dest+BACKUP_SUFFIX))
+        remove(abspath(dest))
         symlink(abspath(src), abspath(dest))
+        print_info(f"Created Symlink: \"{style_path(dest+' -> '+environ['DOTFILES']+'/'+src)}\"")
