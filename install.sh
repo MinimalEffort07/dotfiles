@@ -25,16 +25,100 @@ print_section() {
     echo -e "[${GREEN}SECTION${RES}] $@"
 }
 
+function dotfiles_bannner() {
 
+    echo -e "
+           ██╗██████╗  ██████╗ ████████╗███████╗██╗██╗     ███████╗███████╗
+          ██╔╝██╔══██╗██╔═══██╗╚══██╔══╝██╔════╝██║██║     ██╔════╝██╔════╝
+         ██╔╝ ██║  ██║██║   ██║   ██║   █████╗  ██║██║     █████╗  ███████╗
+        ██╔╝  ██║  ██║██║   ██║   ██║   ██╔══╝  ██║██║     ██╔══╝  ╚════██║
+    ██╗██╔╝   ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║
+    ╚═╝╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝\x0a"
+}
 
+function create_syms() {
+    arr=("$@")
 
-echo -e "
-       ██╗██████╗  ██████╗ ████████╗███████╗██╗██╗     ███████╗███████╗
-      ██╔╝██╔══██╗██╔═══██╗╚══██╔══╝██╔════╝██║██║     ██╔════╝██╔════╝
-     ██╔╝ ██║  ██║██║   ██║   ██║   █████╗  ██║██║     █████╗  ███████╗
-    ██╔╝  ██║  ██║██║   ██║   ██║   ██╔══╝  ██║██║     ██╔══╝  ╚════██║
-██╗██╔╝   ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║
-╚═╝╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝\x0a"
+    for sym in "$@"; do
+        symarr=($sym)
+
+        if [[ -f "${symarr[1]}" ]]; then
+
+            print_info "${symarr[1]} already exists but is not a symlink. "\
+                       "Attempting to back it up now"
+                                   
+            # Existing File, back it up
+            if [[ -f "${symarr[1]}.dotfiles.bak" ]]; then
+                print_info "Found existing backup. Attempting to delete it."
+                if rm "${symarr[1]}.dotfiles.bak"; then
+                    print_info "Deleted existing backup"
+                elif $ADMIN rm "${symarr[1]}.dotfiles.bak"; then
+                    print_warn "Deleted existing backup. Required sudo"
+                else 
+                    print_warn "Failed to delete existing backup. "\
+                               "Not serious issue, you may want to manually "\
+                               "delete the backup ${symarr[1]}.dotfiles.bak"
+                fi
+            fi
+            
+            # Attempting backup
+            if mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak"; then 
+                print_info "${symarr[1]} Successfully backed up to "\
+                           "${symarr[1]}.dotfiles.back"
+            elif $ADMIN mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak"; then
+                print_warn "${symarr[1]} Successfully backed up to "\
+                           "${symarr[1]}.dotfiles.back. Required sudo"
+            else
+                print_err "Unable to backup ${symarr[1]}"
+                exit 1
+            fi
+        fi
+        
+        # Attempting to remove existing destination file
+        if [[ -e "${symarr[1]}" ]]; then
+            print_info "Attempting to remove old ${symarr[1]}"
+            if rm "${symarr[1]}"; then
+                print_info "Successfully removed ${symarr[1]}"
+            elif $ADMIN rm "${symarr[1]}"; then
+                print_warn "Successfully removed ${symarr[1]}. Required sudo"
+            else
+                print_err "Failed to removed ${symarr[1]}"
+            fi
+        fi
+
+        print_info "Attempting to create symlink ${symarr[0]} -> ${symarr[1]}"
+
+        if ln -s "${symarr[0]}" "${symarr[1]}"; then
+            print_info "Successfully created symlink"
+        elif $ADMIN ln -s "${symarr[0]}" "${symarr[1]}"; then
+            print_warn "Successfully created symlink. Required sudo"
+        else 
+            print_err "Failed to create symlink"
+        fi
+    done
+}
+
+# Given a list of directories create them.
+function create_dirs() {
+    arr=("$@")
+
+    for dir in ${arr[@]}; do
+
+        if [[ -d "${dir}" ]]; then
+            print_info "${dir} already exists"
+        else
+            print_info "Attempting to create ${dir}"
+
+            if mkdir -p "${dir}"; then
+                print_info "Created ${dir}"
+            elif $ADMIN mkdir -p "${dir}"; then
+                print_warn "Created ${dir}.. Required sudo"
+            else
+                print_info "Unable to create ${dir}.."
+            fi
+        fi
+    done
+}
 
 # Given a dependency name, check if it is installed on the system
 function check_installed() {
@@ -74,6 +158,9 @@ function install_deps() {
 }
 
 function main() {
+
+    dotfiles_bannner
+
     print_section "Determining OS"
 
     if [[ $(uname) -eq "Darwin" ]]; then 
@@ -131,11 +218,31 @@ export DOTFILES="$(pwd)"
         install_deps ${deps_linux_only[@]}
     fi
 
+    print_section "Creating Directories"
+
     local dirs_mac_only=("")
-    local dirs_linux_only=("/root/.config/nvim/" "" )
-    local dirs_agnostic=("curl" "zsh" "neovim" "pip")
+    local dirs_linux_only=("/root/.config/nvim/" "${HOME}/.config/i3")
+    local dirs_agnostic=("${HOME}/.config/nvim")
+
+    create_dirs ${dirs_agnostic[@]}
+
+    if [[ "$OS" -eq "Darwin" ]]; then
+        create_dirs "${dirs_mac_only[@]}"
+    else
+        create_dirs "${dirs_linux_only[@]}"
+    fi
+
+    print_section "Creating Symlinks"
+
+    local syms_mac_only=("")
+    local syms_linux_only=("${DOTFILES}/init.vim /root/.config/nvim/init.vim"
+                           "${DOTFILES}/i3_config ${HOME}/.config/i3/config"
+                          )
+    local syms_agnostic=("${DOTFILES}/zshrc ${HOME}/.zshrc" "${DOTFILES}/init.vim ${HOME}/.config/nvim/init.vim")
+
+
+    # Double quotes needed to prevent splitting of source and dest parts of string
+    create_syms "${syms_agnostic[@]}"
 }
-
-
 
 main
