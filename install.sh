@@ -359,7 +359,6 @@ export DOTFILES="$(pwd)"
         fi
     fi
 
-    exit
     print_section "Executing Custom Commands"
 
     # Installing Pwndbg
