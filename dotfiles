@@ -42,6 +42,14 @@ from colorama import (
         Style,
 )
 
+print("""
+       ██╗██████╗  ██████╗ ████████╗███████╗██╗██╗     ███████╗███████╗
+      ██╔╝██╔══██╗██╔═══██╗╚══██╔══╝██╔════╝██║██║     ██╔════╝██╔════╝
+     ██╔╝ ██║  ██║██║   ██║   ██║   █████╗  ██║██║     █████╗  ███████╗
+    ██╔╝  ██║  ██║██║   ██║   ██║   ██╔══╝  ██║██║     ██╔══╝  ╚════██║
+██╗██╔╝   ██████╔╝╚██████╔╝   ██║   ██║     ██║███████╗███████╗███████║
+╚═╝╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝""")
+
 def print_info(text):
     print(f"[{Fore.LIGHTBLUE_EX}INFO{Style.RESET_ALL}] {text}")
 
@@ -121,7 +129,7 @@ parser.add_argument('-f',
                     action='store_true',
                     required=False,
                     dest="force_sym_create",
-                    help='Deletes existing symlinks and creates new ones')
+                    help='Backs up existing symlinks and creates new ones')
 
 args = parser.parse_args()
 
@@ -186,18 +194,20 @@ if not args.skip_install:
 #   Dependencies are in the format of: 
 #       (name_of_executable,
 #        name_of_package_it_resides_in or None,
-#        os_not_to_install_on or None) 
+#        os_not_to_install_on or None,
+#        install_command_as_list_for_sub_process_or_none_defaulting_to_os_package_manager) 
 #
-#       e.g. (nvim, neovim, None) or (i3, None, mac)
+#       e.g. (nvim, neovim, None, None) or (i3, None, mac, None)
 #
 DEPENDENCIES = [ 
-    ("zsh", None, None), 
-    ("nvim", "neovim", None),
-    ("i3", None, "mac"),
+    ("zsh", None, None, None), 
+    ("nvim", "neovim", None, None),
+    ("i3", None, "mac", None),
+    ("vim-plug", None, None, ['curl', '-fL', "https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim", '-o',f"{environ['HOME']}/.local/share/nvim/site/autoload/plug.vim", '--create-dirs'])
 ]
 
 if not args.skip_install:
-    for (executable, package, bad_os) in DEPENDENCIES:
+    for (executable, package, bad_os, command) in DEPENDENCIES:
 
         install_obj = executable if not package else package
 
@@ -205,25 +215,33 @@ if not args.skip_install:
             print_warn(f"{install_obj} Not Required On {OS}, Skipping..")
             continue
 
-        if not which(executable) and OS != bad_os:
+        if which(executable):
+            print_warn(f"{install_obj} Already Installed")
+            continue
 
-            print_warn(f"{executable} Was Not Found.. Attempting To Install {install_obj}")
+        if command:
+            print_info(f"Command Was Provided For {install_obj}, Executing Command")
+            cmd = subprocess.run(command, capture_output=True)
+            if cmd.returncode:
+                print_err(f"Failed To Install {install_obj}\n\n\t{cmd.stderr.decode('utf-8')}")
+                exit(cmd.returncode)
+            continue
 
-            pkg = subprocess.run(
-                [
-                    f'{PACKAGE_MANAGER}',
-                    'install',
-                    f'{install_obj}'
-                ],
-                capture_output=True)
+        print_warn(f"{executable} Was Not Found.. Attempting To Install {install_obj}")
 
-            if pkg.returncode:
-                print_err(f"Failed To Install {install_obj}\n\n\t{pkg.stderr.decode('utf-8')}")
-                exit(pkg.returncode)
-            else:
-                print_info(f"Installed {install_obj}")
+        pkg = subprocess.run(
+            [
+                f'{PACKAGE_MANAGER}',
+                'install',
+                f'{install_obj}'
+            ],
+            capture_output=True)
+
+        if pkg.returncode:
+            print_err(f"Failed To Install {install_obj}\n\n\t{pkg.stderr.decode('utf-8')}")
+            exit(pkg.returncode)
         else:
-            print_info(f"{executable} Already Installed")
+            print_info(f"Installed {install_obj}")
 
 # [ CREATING REQUIRED CONFIGURATION DIRECTORIES ]
 #
