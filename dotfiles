@@ -234,7 +234,7 @@ DEPENDENCIES = [
     ("zsh", None, None, None),
     ("nvim", "neovim", None, None),
     ("i3", None, "mac", None),
-    ("python3", None, None, None),
+    ("pip", None, None, None),
     (
         "vim-plug",
         None,
