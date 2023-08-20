@@ -55,7 +55,7 @@ export RPROMPT='%(?..[%B%F{red}%?%F{white}%b])'
 export TERM=xterm-256color
 export PAGER=less
 export EDITOR=nvim
-export DOTFILES="/home/minimaleffort/projects/minimaleffort/dotfiles"
+export DOTFILES="/Users/emmanuelchristianos/projects/minimaleffort/dotfiles"
 
 # Aliases
 alias zshrc="vim $DOTFILES/zshrc"

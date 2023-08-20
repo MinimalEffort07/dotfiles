@@ -94,7 +94,7 @@ function create_syms() {
                 print_info "Found existing backup. Attempting to delete it."
                 if rm ".${symarr[1]}.dotfiles.bak"; then
                     print_info "Deleted existing backup"
-                elif $ADMIN rm ".${symarr[1]}.dotfiles.bak 2>/dev/null"; then
+                elif $ADMIN rm ".${symarr[1]}.dotfiles.bak &>/dev/null"; then
                     print_warn "Deleted existing backup. Required sudo"
                 else 
                     print_warn "Failed to delete existing backup. "\
@@ -107,7 +107,7 @@ function create_syms() {
             if mv "${symarr[1]}" ".${symarr[1]}.dotfiles.bak"; then 
                 print_info "$(style_path ${symarr[1]}) Successfully backed up to "\
                            "${symarr[1]}.dotfiles.back"
-            elif $ADMIN mv "${symarr[1]}" ".${symarr[1]}.dotfiles.bak" 2>/dev/null; then
+            elif $ADMIN mv "${symarr[1]}" ".${symarr[1]}.dotfiles.bak" &>/dev/null; then
                 print_warn "${symarr[1]} Successfully backed up to "\
                            "${symarr[1]}.dotfiles.back. Required sudo"
             else
@@ -119,9 +119,9 @@ function create_syms() {
         # Attempting to remove existing destination file
         if $ADMIN test -e "${symarr[1]}"; then
             print_info "Attempting to remove old ${symarr[1]}"
-            if rm "${symarr[1]}" 2>/dev/null; then
+            if rm "${symarr[1]}" &>/dev/null; then
                 print_info "Successfully removed ${symarr[1]}"
-            elif $ADMIN rm "${symarr[1]}" 2>/dev/null; then
+            elif $ADMIN rm "${symarr[1]}" &>/dev/null; then
                 print_warn "Successfully removed ${symarr[1]}. Required sudo"
             else
                 print_err "Failed to removed ${symarr[1]}"
@@ -130,9 +130,9 @@ function create_syms() {
 
         print_info "Attempting to create symlink ${symarr[1]} -> ${symarr[0]}"
 
-        if ln -s "${symarr[0]}" "${symarr[1]}" 2>/dev/null; then
+        if ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
             print_info "Successfully created symlink"
-        elif $ADMIN ln -s "${symarr[0]}" "${symarr[1]}" 2>/dev/null; then
+        elif $ADMIN ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
             print_warn "Successfully created symlink. Required sudo"
         else 
             print_err "Failed to create symlink"
@@ -153,7 +153,7 @@ function create_dirs() {
 
             if mkdir -p "${dir}"; then
                 print_info "Created ${dir}"
-            elif $ADMIN mkdir -p "${dir}" 2>/dev/null; then
+            elif $ADMIN mkdir -p "${dir}" &>/dev/null; then
                 print_warn "Created ${dir}.. Required sudo"
             else
                 print_info "Unable to create ${dir}.."
@@ -165,10 +165,10 @@ function create_dirs() {
 # Given a dependency name, check if it is installed on the system
 function check_installed() {
 
-    if test -n "$(${PCKMAN} list 2>/dev/null) | grep "$1")"; then
+    if which $1 &>/dev/null; then
         return 0
     else
-        if test -n "$(which $1)"; then
+        if $PCKMAN list | grep $1 &>/dev/null; then
             return 0
         else
             return 1
@@ -186,7 +186,7 @@ function install_deps() {
             continue
         fi 
         print_info "Attempting to install ${dep}"
-        if $ADMIN$PCKMAN install $OPTIONS ${dep} 2>/dev/null; then
+        if $ADMIN$PCKMAN install $OPTIONS ${dep} &>/dev/null; then
             print_info "Successfully installed ${dep}"
         else
             if check_installed "${dep}"; then
@@ -234,7 +234,7 @@ export DOTFILES="$(pwd)"
     # Install Homebrew if on MacOS and It isn't already installed
     # -z True if length of string is 0.
 
-    if test "$OS" = "Darwin" && -z "$(which  brew)"; then
+    if [ "$OS" = "MacOS" ] && [ -z "$(which  brew)" ]; then
         print_section "Installing Package Manager"
         print_info "Homebrew not installed, attempting to install now"
         local brewurl="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
@@ -254,7 +254,7 @@ export DOTFILES="$(pwd)"
     
     install_deps ${deps_agnostic[@]}
 
-    if test "$OS" = "Darwin"; then
+    if test "$OS" = "MacOS"; then
         install_deps ${deps_mac_only[@]}
     else
         install_deps ${deps_linux_only[@]}
@@ -268,7 +268,7 @@ export DOTFILES="$(pwd)"
 
     create_dirs ${dirs_agnostic[@]}
 
-    if test "$OS" = "Darwin"; then
+    if test "$OS" = "MacOS"; then
         create_dirs "${dirs_mac_only[@]}"
     else
         create_dirs "${dirs_linux_only[@]}"
@@ -286,11 +286,14 @@ export DOTFILES="$(pwd)"
 
 
     # Double quotes needed to prevent splitting of source and dest parts of string
+    print_info "Creating Platform Agnostic Symlinks"
     create_syms "${syms_agnostic[@]}"
 
-    if test "$OS" = "Darwin"; then
+    if test "$OS" = "MacOS"; then
+        print_info "Creating Mac Only Symlinks"
         create_syms "${syms_mac_only[@]}"
     else
+        print_info "Creating Linux Only Symlinks"
         create_syms "${syms_linux_only[@]}"
     fi
 
@@ -302,7 +305,7 @@ export DOTFILES="$(pwd)"
 
     clone_repos "${repos_agnostic[@]}"
 
-    if test "$OS" = "Darwin"; then
+    if test "$OS" = "MacOS"; then
         clone_repos "${repos_mac_only[@]}"
     else
         clone_repos "${repos_linux_only[@]}"
