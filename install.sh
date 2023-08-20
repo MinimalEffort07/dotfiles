@@ -268,13 +268,15 @@ export DOTFILES="$(pwd)"
     local deps_linux_only=("i3")
     local deps_agnostic=("curl" "zsh" "neovim" "pip")
     
-    print_info "$(emphasize_text Installing Platform Agnostic Dependencies)"
-    install_deps ${deps_agnostic[@]}
+    if test -n "$deps_agnostic"; then
+        print_info "$(emphasize_text Installing Platform Agnostic Dependencies)"
+        install_deps ${deps_agnostic[@]}
+    fi
 
-    if test "$OS" = "MacOS"; then
+    if [ "$OS" = "MacOS" ] && [ -n "$deps_mac_only" ]; then
         print_info "$(emphasize_text Installing Mac Only Dependencies)"
         install_deps ${deps_mac_only[@]}
-    else
+    elif [ "$OS" = "Linux" ] && [ -n "$deps_linux_only" ]; then
         print_info "$(emphasize_text Installing Linux Only Dependencies)"
         install_deps ${deps_linux_only[@]}
     fi
@@ -285,13 +287,15 @@ export DOTFILES="$(pwd)"
     local dirs_linux_only=("/root/.config/nvim/" "${HOME}/.config/i3")
     local dirs_agnostic=("${HOME}/.config/nvim")
 
-    print_info "$(emphasize_text Creating Platform Agnostic Directories)"
-    create_dirs ${dirs_agnostic[@]}
+    if test -n "$dirs_agnostic"; then
+        print_info "$(emphasize_text Creating Platform Agnostic Directories)"
+        create_dirs ${dirs_agnostic[@]}
+    fi
 
-    if test "$OS" = "MacOS"; then
+    if [ "$OS" = "MacOS" ] && [ -n "$dirs_mac_only" ]; then
         print_info "$(emphasize_text Creating Mac Only Directories)"
         create_dirs "${dirs_mac_only[@]}"
-    else
+    elif [ "$OS" = "Linux" ] && [ -n "$dirs_linux_only" ]; then
         print_info "$(emphasize_text Creating Linux Only Directories)"
         create_dirs "${dirs_linux_only[@]}"
     fi
@@ -308,13 +312,15 @@ export DOTFILES="$(pwd)"
 
 
     # Double quotes needed to prevent splitting of source and dest parts of string
-    print_info "$(emphasize_text Creating Platform Agnostic Symlinks)"
-    create_syms "${syms_agnostic[@]}"
+    if test -n "$syms_agnostic"; then
+        print_info "$(emphasize_text Creating Platform Agnostic Symlinks)"
+        create_syms "${syms_agnostic[@]}"
+    fi
 
-    if test "$OS" = "MacOS"; then
+    if [ "$OS" = "MacOS" ] && [ -n "$syms_mac_only" ]; then
         print_info "$(emphasize_text Creating Mac Only Symlinks)"
         create_syms "${syms_mac_only[@]}"
-    else
+    elif [ "$OS" = "Linux" ] && [ -n "$syms_linux_only" ]; then
         print_info "$(emphasize_text Creating Linux Only Symlinks)"
         create_syms "${syms_linux_only[@]}"
     fi
@@ -326,26 +332,34 @@ export DOTFILES="$(pwd)"
     local repos_intel_only=("https://github.com/pwndbg/pwndbg.git")
     local repos_linux_only=()
     local repos_agnostic=()
-
-    print_info "$(emphasize_text Cloning Platform Agnostic Repositories)"
-    clone_repos "${repos_agnostic[@]}"
+    
+    if test -n "$repos_agnostic"; then
+        print_info "$(emphasize_text Cloning Platform Agnostic Repositories)"
+        clone_repos "${repos_agnostic[@]}"
+    fi
 
     if test "$OS" = "MacOS"; then
-        print_info "$(emphasize_text Cloning Mac Only Repositories)"
-        clone_repos "${repos_mac_only[@]}"
-        if test -n "$ARM"; then
+        if test -n "$repos_mac_only"; then
+            print_info "$(emphasize_text Cloning Mac Only Repositories)"
+            clone_repos "${repos_mac_only[@]}"
+        fi
+        
+        if [ -n "$ARM" ] && [ -n "$repos_arm_only" ]; then
             print_info "$(emphasize_text Cloning ARM Mac Only Repositories)"
             clone_repos "${repos_arm_only[@]}"
-        else
+        elif [ -z "$ARM" ] && [ -n "$repos_intel_only" ]; then
             print_info "$(emphasize_text Cloning Intel Mac Only Repositories)"
-            clone_repos "${repos_arm_only[@]}"
+            clone_repos "${repos_intel_only[@]}"
         fi
 
     else
-        print_info "$(emphasize_text Cloning Linux Only Repositories)"
-        clone_repos "${repos_linux_only[@]}"
+        if test -n "$repos_linux_only"; then
+            print_info "$(emphasize_text Cloning Linux Only Repositories)"
+            clone_repos "${repos_linux_only[@]}"
+        fi
     fi
 
+    exit
     print_section "Executing Custom Commands"
 
     # Installing Pwndbg
