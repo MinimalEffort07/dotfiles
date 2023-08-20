@@ -3,6 +3,7 @@
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
+export LC_CTYPE=C.UTF-8 gdb
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -112,8 +113,6 @@ alias tconf="vim ~/.tmux.conf"
 alias venv="source .v/bin/activate"
 alias p="python3"
 alias asm="docker start asm && docker attach asm"
-
-source /opt/homebrew/opt/chruby/share/chruby/chruby.sh
-source /opt/homebrew/opt/chruby/share/chruby/auto.sh
-chruby ruby-3.1.2
-
+alias vim="nvim"
+alias vi="nvim"
+alias v="nvim"
