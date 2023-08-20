@@ -29,7 +29,7 @@ function print_section() {
 }
 
 function minimise_path() {
-    sed s@${HOME}@~@g <<< "$1"
+    sed s@${HOME}@\~@g <<< "$1"
 }
 
 function style_path() {
@@ -300,7 +300,7 @@ function main() {
     print_info "DOTFILES=$(style_path ${DOTFILES})"
     print_info "Attempting to update DOTFILES variable in zshrc"
 
-    if sed -E -i.dotfiles.bak s@DOTFILES=.\*@DOTFILES=\"${DOTFILES}\"@g "${DOTFILES}/zshrc"; then
+    if sed -E -i.dotfiles.bak s@DOTFILES=.\*@DOTFILES=\"$(minimise_path ${DOTFILES})\"@g "${DOTFILES}/zshrc"; then
         print_info "Successfully updated DOTFILES environment variable in zshrc"
     else
         print_err "Failed to updated DOTFILES environment variable in zshrc"
