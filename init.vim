@@ -11,9 +11,14 @@ autocmd VimEnter * if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
 
 call plug#begin()
 
+Plug 'bcicen/vim-vice'
+
 call plug#end()
 
 " ------------------------------- Misc Customisation ---------------------------
+
+" Color Scheme
+colorscheme vice
 
 " Syntax Highlighting
 syntax on
