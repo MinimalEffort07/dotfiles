@@ -168,13 +168,21 @@ function create_dirs() {
 # Given a dependency name, check if it is installed on the system
 function check_installed() {
 
-    if which $1 &>/dev/null; then
+     if which $1 &>/dev/null; then
         return 0
     else
-        if $PCKMAN list 2>/dev/null | grep $1 &>/dev/null; then
-            return 0
+        if "$PCKMAN" = "brew"; then
+            if $PCKMAN list 2>/dev/null | grep $1 &>/dev/null; then
+                return 0
+            else
+                return 1
+            fi
         else
-            return 1
+            if $PCKMAN list --installed 2>/dev/null | grep $1 &>/dev/null; then
+                return 0
+            else
+                return 1
+            fi
         fi
     fi
 }
