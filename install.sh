@@ -3,6 +3,7 @@
 # Install and setup packages and configuration files
 # Author: Emmanuel Christianos
 
+
 CYAN="\x1b\x5b1;96m"
 RED="\x1b\x5b1;91m"
 GREEN="\x1b\x5b1;92m"
@@ -11,6 +12,9 @@ MAGENTA="\x1b\x5b1;95m"
 BRIGHT_BLACK="\x1b\x5b1;3;90m"
 BLUE="\x1b\x5b1;3;94m"
 RES="\x1b\x5b0m"
+
+# \x08 is BS 'Backspace' character. Used to remove ^C from output. 
+trap 'echo -e "\x08\x08Signal ${RED}SIGINT${RES} Caught.. Exiting" && exit 1' SIGINT
 
 function print_info() {
     echo -e "[${CYAN}INFO${RES}] $@"
