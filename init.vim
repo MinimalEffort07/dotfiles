@@ -17,6 +17,9 @@ call plug#end()
 
 " ------------------------------- Misc Customisation ---------------------------
 
+" Show file name in title
+set title
+
 " Color Scheme
 colorscheme vice
 
