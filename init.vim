@@ -44,8 +44,6 @@ set expandtab
 " Highlight search results
 set hlsearch
 
-nnoremap kernel :set tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab<CR>:retab!<CR>
-
 " ------------------------- Color Column Customisation -------------------------
 
 " Set colour column to column 80
@@ -139,6 +137,9 @@ nnoremap <C-g> :YcmCompleter GoTo<CR>
 
 " Create SED to clear all trailing white space
 nnoremap clear :%s/ \+$//gc<CR>
+
+" Format file in accordance to vim guidelines for linux kernel developement
+nnoremap <C-k> :set tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab<CR>:retab!<CR>
 
 " ----------- Insert Mode Custom Key Mappings ---------------------------------
 
