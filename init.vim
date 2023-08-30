@@ -17,6 +17,9 @@ call plug#end()
 
 " ------------------------------- Misc Customisation ---------------------------
 
+" Copies to to clipboard
+set clipboard=unnamedplus
+
 " Show file name in title
 set title
 
@@ -40,6 +43,8 @@ set expandtab
 
 " Highlight search results
 set hlsearch
+
+nnoremap kernel :set tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab<CR>:retab!<CR>
 
 " ------------------------- Color Column Customisation -------------------------
 
