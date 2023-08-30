@@ -176,7 +176,7 @@ function check_installed() {
         return 0
     else
         if [ "${PCKMAN}" = "brew" ]; then
-            if $PCKMAN list 2>/dev/null | grep $1 &>/dev/null; then
+            if $PCKMAN list -1 2>/dev/null | grep -E "^$1$" &>/dev/null; then
                 return 0
             else
                 return 1
