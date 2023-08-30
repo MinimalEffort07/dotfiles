@@ -182,7 +182,7 @@ function check_installed() {
                 return 1
             fi
         else
-            if $PCKMAN list --installed 2>/dev/null | grep $1 &>/dev/null; then
+            if $PCKMAN list --installed 2>/dev/null | grep -E "^$1/" &>/dev/null; then
                 return 0
             else
                 return 1
