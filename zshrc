@@ -57,7 +57,6 @@ export TERM=xterm-256color
 export PAGER=less
 export EDITOR=nvim
 export DOTFILES="~/projects/minimaleffort/dotfiles"
-#export PATH="/usr/local/opt/binutils/bin:$PATH"
 
 # Aliases
 alias zshrc="vim ~/.zshrc"
@@ -82,6 +81,7 @@ then
     alias sed="gsed"
 else
     alias ls="ls -1c --color -Fv"
+    export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/home/minimaleffort/.local/bin
 fi
 
 alias l="ls"
