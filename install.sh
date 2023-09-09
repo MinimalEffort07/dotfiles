@@ -228,10 +228,12 @@ function main() {
         if test "$(uname -m)" = "arm64"; then
             ARM="arm64"
         fi
+        MV=gmv
     else
         OS="Linux"
         PCKMAN="sudo apt"
         OPTIONS="-y"
+        MV=mv
     fi
 
     print_info "OS is: $(highlight_text ${OS})"
@@ -386,19 +388,19 @@ function main() {
     fi
 
     print_info "Copied $(style_path gitconfig/.global-gitconfig) to $(style_path ${HOME}/.gitconfig)"
-    mv -i gitconfig/.global-gitconfig ${HOME}/.gitconfig
+    ${MV} --backup=numbered gitconfig/.global-gitconfig ${HOME}/.gitconfig 
 
     print_info "Copied $(style_path gitconfig/.private-gitconfig) to $(style_path ${HOME}/projects/private-git/.gitconfig)"
-    mv -i gitconfig/.private-gitconfig ${HOME}/projects/private-git/.gitconfig
+    ${MV} --backup=numbered  gitconfig/.private-gitconfig ${HOME}/projects/private-git/.gitconfig &>/dev/null
 
     print_info "Copied $(style_path gitconfig/.minimaleffort-gitconfig) to $(style_path ${HOME}/projects/minimaleffort/.gitconfig)"
-    mv -i gitconfig/.minimaleffort-gitconfig ${HOME}/projects/minimaleffort/.gitconfig
+    ${MV} --backup=numbered  gitconfig/.minimaleffort-gitconfig ${HOME}/projects/minimaleffort/.gitconfig &>/dev/null
 
     print_info "Copied $(style_path gitconfig/private-git) to $(style_path ${HOME}/.ssh/private-git)"
-    mv -i gitconfig/private-git ${HOME}/.ssh/
+    ${MV} --backup=numbered gitconfig/private-git ${HOME}/.ssh/ &>/dev/null
 
     print_info "Copied $(style_path gitconfig/minimaleffort) to $(style_path ${HOME}/.ssh/minimaleffort)"
-    mv -i gitconfig/minimaleffort ${HOME}/.ssh/
+    ${MV} --backup=numbered gitconfig/minimaleffort ${HOME}/.ssh/ &>/dev/null
 
     rm -rf gitconfig
     if [ $? -ne 0 ]; then

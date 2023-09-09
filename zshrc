@@ -79,6 +79,7 @@ if [[ "$(uname)" = "Darwin" ]]
 then
     alias ls="gls -1c --color -Fv"
     alias sed="gsed"
+    alias mv="gmv"
 else
     alias ls="ls -1c --color -Fv"
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/home/minimaleffort/.local/bin
