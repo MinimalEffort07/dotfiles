@@ -123,7 +123,7 @@ function create_syms() {
         fi
         
         # Attempting to remove existing destination file
-        if sudo test -e ${symarr[1]}; then
+        if sudo test -e ${symarr[1]} || sudo test -h ${symarr[1]}; then
             print_info "....Attempting to remove old $(style_path ${symarr[1]})"
             if rm "${symarr[1]}" &>/dev/null; then
                 print_info "....Successfully removed $(style_path ${symarr[1]})"
@@ -323,7 +323,10 @@ function main() {
     print_section "Creating Directories"
 
     local dirs_mac_only=()
-    local dirs_linux_only=("/root/.config/nvim/" "${HOME}/.config/i3")
+    local dirs_linux_only=("/root/.config/nvim/"
+                           "/root/.local/share/nvim/site/autoload/"
+                           "${HOME}/.config/i3")
+
     local dirs_agnostic=("${HOME}/.config/nvim"
                          "${HOME}/projects/minimaleffort"
                          "${HOME}/projects/private-git")
@@ -345,6 +348,7 @@ function main() {
 
     local syms_mac_only=()
     local syms_linux_only=("${DOTFILES}/init.vim /root/.config/nvim/init.vim"
+                           "${HOME}/.local/share/nvim/site/autoload/plug.vim /root/.local/share/nvim/site/autoload/plug.vim"
                            "${DOTFILES}/i3_config ${HOME}/.config/i3/config")
 
     local syms_agnostic=("${DOTFILES}/zshrc ${HOME}/.zshrc"
@@ -367,6 +371,20 @@ function main() {
     fi
 
     print_section "Executing Custom Commands"
+
+    if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
+        print_info "$(highlight_text Vim-Plug) already installed"
+    else
+        sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+            https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim' &>/dev/null
+
+        if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
+            print_info "Successfully installed $(highlight_text Vim-Plug)"
+        else 
+            print_err "Failed to install $(highlight_text Vim-Plug)"
+            exit 1
+        fi
+    fi
 
     print_info "Setting up .gitconfigs" 
     print_info "Enter Password To Decrypt gitconfig.enc"
