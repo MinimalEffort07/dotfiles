@@ -256,7 +256,7 @@ function main() {
 
     local deps_mac_only=("coreutils" "binutils" "gnu-sed")
     local deps_linux_only=("i3")
-    local deps_agnostic=("curl" "zsh" "neovim" "pip")
+    local deps_agnostic=("curl" "zsh" "neovim" "pip" "gpg" "tar")
     
     if test -n "$deps_agnostic"; then
         print_info "$(emphasize_text Installing Platform Agnostic Dependencies)"
@@ -305,7 +305,6 @@ function main() {
         fi
     fi
 
-    print_section "Executing Custom Commands"
     print_section "Setting up DOTFILES Environment Variable"
 
     export DOTFILES="$(pwd)"
@@ -323,7 +322,9 @@ function main() {
 
     local dirs_mac_only=()
     local dirs_linux_only=("/root/.config/nvim/" "${HOME}/.config/i3")
-    local dirs_agnostic=("${HOME}/.config/nvim")
+    local dirs_agnostic=("${HOME}/.config/nvim"
+                         "${HOME}/projects/minimaleffort"
+                         "${HOME}/projects/private-git")
 
     if test -n "$dirs_agnostic"; then
         print_info "$(emphasize_text Creating Platform Agnostic Directories)"
@@ -363,6 +364,46 @@ function main() {
         create_syms "${syms_linux_only[@]}"
     fi
 
+    print_section "Executing Custom Commands"
+
+    print_info "Setting up .gitconfigs" 
+    print_info "Enter Password To Decrypt gitconfig.enc"
+    gpg --output gitconfig.tar -d gitconfig.enc &>/dev/null
+    if [ $? -ne 0 ]; then
+        print_err "Failed To Decrypt gitconfig.enc File"
+        exit 1
+    fi
+
+    tar xvf gitconfig.tar &>/dev/null
+    if [ $? -ne 0 ]; then
+        print_err "Failed To Decompress gitconfig.tar File"
+        exit 1
+    fi 
+
+    rm -rf gitconfig.tar
+    if [ $? -ne 0 ]; then
+        print_warn "Failed To Remove Decrypted gitconfig.tar. You May Want To Manually Remove It"
+    fi
+
+    print_info "Copied $(style_path gitconfig/.global-gitconfig) to $(style_path ${HOME}/.gitconfig)"
+    mv -i gitconfig/.global-gitconfig ${HOME}/.gitconfig
+
+    print_info "Copied $(style_path gitconfig/.private-gitconfig) to $(style_path ${HOME}/projects/private-git/.gitconfig)"
+    mv -i gitconfig/.private-gitconfig ${HOME}/projects/private-git/.gitconfig
+
+    print_info "Copied $(style_path gitconfig/.minimaleffort-gitconfig) to $(style_path ${HOME}/projects/minimaleffort/.gitconfig)"
+    mv -i gitconfig/.minimaleffort-gitconfig ${HOME}/projects/minimaleffort/.gitconfig
+
+    print_info "Copied $(style_path gitconfig/private-git) to $(style_path ${HOME}/.ssh/private-git)"
+    mv -i gitconfig/private-git ${HOME}/.ssh/
+
+    print_info "Copied $(style_path gitconfig/minimaleffort) to $(style_path ${HOME}/.ssh/minimaleffort)"
+    mv -i gitconfig/minimaleffort ${HOME}/.ssh/
+
+    rm -rf gitconfig
+    if [ $? -ne 0 ]; then
+        print_warn "Failed To Remove Decrypted And Decompressed gitconfig/. You May Want To Manually Remove It"
+    fi
 }
 
 main
