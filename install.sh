@@ -424,6 +424,14 @@ function main() {
     if [ $? -ne 0 ]; then
         print_warn "Failed To Remove Decrypted And Decompressed gitconfig/. You May Want To Manually Remove It"
     fi
+
+    print_info "Installing Neovim Plugins"
+    nvim --headless +PlugInstall +q +q &>/dev/null
+    if [ $? -ne 0 ]; then
+        print_warn "Failed To Install $(highlight_text Neovim Plugins)"
+    else
+        print_info "Installed $(highlight_text Neovim Plugins)"
+    fi
 }
 
 main
