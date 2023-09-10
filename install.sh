@@ -13,7 +13,7 @@ BRIGHT_BLACK="\x1b\x5b1;3;90m"
 BLUE="\x1b\x5b1;3;94m"
 RES="\x1b\x5b0m"
 
-# \x08 is BS 'Backspace' character. Used to remove ^C from output. 
+# \x08 is BS 'Backspace' character. Used to remove ^C from output.
 trap 'echo -e "\x08\x08Signal ${RED}SIGINT${RES} Caught.. Exiting" && exit 1' SIGINT
 
 function print_info() {
@@ -66,12 +66,12 @@ function clone_repos() {
     arr=("$@")
     for repo_url in "$@"; do
         # We want to obtain repo name which will always be .../<name_here>.git
-        # since names can't have forward slashes in them we can split the URL 
+        # since names can't have forward slashes in them we can split the URL
         # by slashes using cut however, we don't know how many fields there are
-        # so we reverse the URL first, making the name be the first field and 
+        # so we reverse the URL first, making the name be the first field and
         # we split on '/', get the first element which will be tig.<name_in_rev>
         # we split again but on '.' and take the second field i.e. the name and
-        # reverse the name back to normal text.  
+        # reverse the name back to normal text.
         repo_name="$(echo "$repo_url" | rev | cut -d'/' -f1 | cut -d. -f 2 | rev)"
 
         if sudo test -d "/opt/${repo_name}"; then
@@ -84,7 +84,7 @@ function clone_repos() {
                 print_info "Attempting to chown /opt/${repo_name} to $USER ownership"
                 if sudo chown -R $USER: "/opt/${repo_name}"; then
                     print_info "Successfully updated ownership"
-                else 
+                else
                     print_err "Failed to updated ownership. Aborting"
                     exit 1
                 fi
@@ -109,9 +109,9 @@ function create_syms() {
 
             print_warn "....$(style_path ${symarr[1]}) already exists but is"\
                        "not a symlink. Attempting to back it up now"
-                                   
+
             # Attempting backup of non symlink configuration files
-            if mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then 
+            if mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
                 print_info "....$(style_path ${symarr[1]}) Successfully backed up to"\
                            "$(style_path ${symarr[1]}.dotfiles.back)"
             elif sudo mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
@@ -121,7 +121,7 @@ function create_syms() {
                 print_warn "....Unable to backup $(syle_path ${symarr[1]})"
             fi
         fi
-        
+
         # Attempting to remove existing destination file
         if sudo test -e ${symarr[1]} || sudo test -h ${symarr[1]}; then
             print_info "....Attempting to remove old $(style_path ${symarr[1]})"
@@ -139,7 +139,7 @@ function create_syms() {
             print_info "....Successfully created symlink"
         elif sudo ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
             print_warn "....Successfully created symlink. $(highlight_text Required sudo)"
-        else 
+        else
             print_err "....Failed to create symlink"
             exit 1
         fi
@@ -199,7 +199,7 @@ function install_deps() {
         if check_installed "${dep}"; then
             print_info "$(highlight_text ${dep}) is already installed. $(highlight_text Skipping..)"
             continue
-        fi 
+        fi
         print_info "Attempting to install ${dep}"
         if $PCKMAN install $OPTIONS ${dep} &>/dev/null; then
             print_info "Successfully installed $(highlight_text ${dep})"
@@ -222,7 +222,7 @@ function main() {
 
     print_section "Determining OS"
 
-    if test "$(uname)" = "Darwin"; then 
+    if test "$(uname)" = "Darwin"; then
         OS="MacOS"
         PCKMAN="brew"
         if test "$(uname -m)" = "arm64"; then
@@ -238,7 +238,7 @@ function main() {
 
     print_info "OS is: $(highlight_text ${OS})"
     print_info "Using $(highlight_text ${PCKMAN}) package manager"
-    
+
     # Install Homebrew if on MacOS and It isn't already installed
     # -z True if length of string is 0.
 
@@ -246,10 +246,10 @@ function main() {
         print_section "Installing Package Manager"
         print_info "Homebrew not installed, attempting to install now"
         local brewurl="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
-        if /bin/bash -c "$(curl -fsSL $brewurl)"; then 
+        if /bin/bash -c "$(curl -fsSL $brewurl)"; then
             print_err "Failed to install Homebrew.. Exiting"
             exit 1
-        else 
+        else
             print_info "Successfully installed Homebrew"
         fi
     fi
@@ -259,7 +259,7 @@ function main() {
     local deps_mac_only=("coreutils" "binutils" "gnu-sed")
     local deps_linux_only=("i3")
     local deps_agnostic=("curl" "zsh" "neovim" "pip" "gpg" "tar")
-    
+
     if test -n "$deps_agnostic"; then
         print_info "$(emphasize_text Installing Platform Agnostic Dependencies)"
         install_deps ${deps_agnostic[@]}
@@ -272,7 +272,7 @@ function main() {
         print_info "$(emphasize_text Installing Linux Only Dependencies)"
         install_deps ${deps_linux_only[@]}
     fi
-    
+
     # Installing Github Repos to be installed in /opt
     print_section "Cloning Repositories"
     local repos_mac_only=()
@@ -280,7 +280,7 @@ function main() {
     local repos_intel_only=()
     local repos_linux_only=()
     local repos_agnostic=()
-    
+
     if test -n "$repos_agnostic"; then
         print_info "$(emphasize_text Cloning Platform Agnostic Repositories)"
         clone_repos "${repos_agnostic[@]}"
@@ -291,7 +291,7 @@ function main() {
             print_info "$(emphasize_text Cloning Mac Only Repositories)"
             clone_repos "${repos_mac_only[@]}"
         fi
-        
+
         if [ -n "$ARM" ] && [ -n "$repos_arm_only" ]; then
             print_info "$(emphasize_text Cloning ARM Mac Only Repositories)"
             clone_repos "${repos_arm_only[@]}"
@@ -318,7 +318,7 @@ function main() {
     else
         print_err "Failed to updated DOTFILES environment variable in zshrc"
         exit 1
-    fi 
+    fi
 
     print_section "Creating Directories"
 
@@ -380,13 +380,13 @@ function main() {
 
         if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
             print_info "Successfully installed $(highlight_text Vim-Plug)"
-        else 
+        else
             print_err "Failed to install $(highlight_text Vim-Plug)"
             exit 1
         fi
     fi
 
-    print_info "$(emphasize_text Setting up .gitconfigs)" 
+    print_info "$(emphasize_text Setting up .gitconfigs)"
     print_info "Enter Password To Decrypt gitconfig.enc"
     gpg --output gitconfig.tar -d gitconfig.enc &>/dev/null
     if [ $? -ne 0 ]; then
@@ -398,7 +398,7 @@ function main() {
     if [ $? -ne 0 ]; then
         print_err "Failed To Decompress gitconfig.tar File"
         exit 1
-    fi 
+    fi
 
     rm -rf gitconfig.tar
     if [ $? -ne 0 ]; then
@@ -406,7 +406,7 @@ function main() {
     fi
 
     print_info "Copied $(style_path gitconfig/.global-gitconfig) to $(style_path ${HOME}/.gitconfig)"
-    ${MV} --backup=numbered gitconfig/.global-gitconfig ${HOME}/.gitconfig 
+    ${MV} --backup=numbered gitconfig/.global-gitconfig ${HOME}/.gitconfig
 
     print_info "Copied $(style_path gitconfig/.private-gitconfig) to $(style_path ${HOME}/projects/private-git/.gitconfig)"
     ${MV} --backup=numbered  gitconfig/.private-gitconfig ${HOME}/projects/private-git/.gitconfig &>/dev/null
