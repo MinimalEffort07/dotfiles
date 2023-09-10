@@ -425,6 +425,15 @@ function main() {
         print_warn "Failed To Remove Decrypted And Decompressed gitconfig/. You May Want To Manually Remove It"
     fi
 
+    print_info "Starting ssh-agent"
+    eval $(ssh-agent -s) &>/dev/null
+
+    print_info "Adding $(style_path ~/.ssh/minimaleffort/minimaleffort.key) to ssh-agent"
+    ssh-add ~/.ssh/minimaleffort/minimaleffort.key &>/dev/null
+
+    print_info "Adding $(style_path ~/.ssh/private-git/private-git.key) to ssh-agent"
+    ssh-add ~/.ssh/private-git/private-git.key &>/dev/null
+
     print_info "Installing Neovim Plugins"
     nvim --headless +PlugInstall +q +q &>/dev/null
     if [ $? -ne 0 ]; then
