@@ -197,7 +197,7 @@ function install_deps() {
 
     for dep in ${arr[@]}; do
         if check_installed "${dep}"; then
-            print_info "$(highlight_text ${dep}) is already installed"
+            print_info "$(highlight_text ${dep}) is already installed. $(highlight_text Skipping..)"
             continue
         fi 
         print_info "Attempting to install ${dep}"
@@ -373,7 +373,7 @@ function main() {
     print_section "Executing Custom Commands"
 
     if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
-        print_info "$(highlight_text Vim-Plug) already installed"
+        print_info "$(highlight_text Vim-Plug) already installed. $(highlight_text Skipping..)"
     else
         sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
             https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim' &>/dev/null
@@ -386,7 +386,7 @@ function main() {
         fi
     fi
 
-    print_info "Setting up .gitconfigs" 
+    print_info "$(emphasize_text Setting up .gitconfigs)" 
     print_info "Enter Password To Decrypt gitconfig.enc"
     gpg --output gitconfig.tar -d gitconfig.enc &>/dev/null
     if [ $? -ne 0 ]; then
@@ -425,7 +425,7 @@ function main() {
         print_warn "Failed To Remove Decrypted And Decompressed gitconfig/. You May Want To Manually Remove It"
     fi
 
-    print_info "Starting ssh-agent"
+    print_info "$(emphasize_text Starting ssh-agent And Adding Keys)"
     eval $(ssh-agent -s) &>/dev/null
 
     print_info "Adding $(style_path ~/.ssh/minimaleffort/minimaleffort.key) to ssh-agent"
@@ -434,7 +434,7 @@ function main() {
     print_info "Adding $(style_path ~/.ssh/private-git/private-git.key) to ssh-agent"
     ssh-add ~/.ssh/private-git/private-git.key &>/dev/null
 
-    print_info "Installing Neovim Plugins"
+    print_info "$(emphasize_text Installing Neovim Plugins)"
     nvim --headless +PlugInstall +q +q &>/dev/null
     if [ $? -ne 0 ]; then
         print_warn "Failed To Install $(highlight_text Neovim Plugins)"
