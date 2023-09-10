@@ -75,7 +75,7 @@ function clone_repos() {
         repo_name="$(echo "$repo_url" | rev | cut -d'/' -f1 | cut -d. -f 2 | rev)"
 
         if sudo test -d "/opt/${repo_name}"; then
-            print_warn "$(highlight_text ${repo_name}) already exists. Skipping"
+            print_warn "$(highlight_text ${repo_name}) already exists. $(highlight_text Skipping..)"
         else
             print_info "Attempting to clone ${repo_name} into /opt/${repo_name}"
             if sudo git clone -q $repo_url "/opt/${repo_name}"; then
@@ -116,7 +116,7 @@ function create_syms() {
                            "$(style_path ${symarr[1]}.dotfiles.back)"
             elif sudo mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
                 print_warn "....$(style_path ${symarr[1]}) Successfully backed up to"\
-                           "$(style_path ${symarr[1]}.dotfiles.back). Required sudo"
+                    "$(style_path ${symarr[1]}.dotfiles.back). $(highlight_text Required sudo)"
             else
                 print_warn "....Unable to backup $(syle_path ${symarr[1]})"
             fi
@@ -129,7 +129,7 @@ function create_syms() {
                 print_info "....Successfully removed $(style_path ${symarr[1]})"
             elif sudo rm "${symarr[1]}" &>/dev/null; then
                 print_warn "....Successfully removed "\
-                           "$(style_path ${symarr[1]}). Required sudo"
+                    "$(style_path ${symarr[1]}). $(highlight_text Required sudo)"
             else
                 print_err "....Failed to removed $(style_path ${symarr[1]})"
             fi
@@ -138,7 +138,7 @@ function create_syms() {
         if ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
             print_info "....Successfully created symlink"
         elif sudo ln -s "${symarr[0]}" "${symarr[1]}" &>/dev/null; then
-            print_warn "....Successfully created symlink. Required sudo"
+            print_warn "....Successfully created symlink. $(highlight_text Required sudo)"
         else 
             print_err "....Failed to create symlink"
             exit 1
@@ -153,14 +153,14 @@ function create_dirs() {
     for dir in ${arr[@]}; do
 
         if sudo test -d "${dir}"; then
-            print_warn "$(style_path ${dir}) already exists. Skipping.."
+            print_warn "$(style_path ${dir}) already exists. $(highlight_text Skipping..)"
         else
             print_info "Attempting to create $(style_path ${dir})"
 
             if mkdir -p "${dir}"; then
                 print_info "Created $(style_path ${dir})"
             elif sudo mkdir -p "${dir}" &>/dev/null; then
-                print_warn "Created $(style_path ${dir}).. Required sudo"
+                print_warn "Created $(style_path ${dir}).. $(highlight_text Required sudo)"
             else
                 print_err "Unable to create $(style_path ${dir}).."
                 exit 1
