@@ -92,10 +92,6 @@ alias lla="ls -la"
 alias rls="ls"
 alias sl="ls"
 
-alias v="nvim"
-alias vi="nvim"
-alias vim="nvim"
-
 alias gr="grep -inRI --color"
 
 alias g="git"

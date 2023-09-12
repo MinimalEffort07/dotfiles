@@ -216,6 +216,30 @@ function install_deps() {
     done
 }
 
+function uninstall_conflicts() {
+    arr=("$@")
+
+    for conflict in ${arr[@]}; do
+        if ! check_installed "${conflict}"; then
+            print_info "$(highlight_text ${conflict}) is not installed. $(highlight_text Skipping..)"
+            continue
+        fi
+
+        print_info "Attempting to uninstall ${conflict}"
+
+        if $PCKMAN remove ${conflict} -y &>/dev/null; then
+            print_info "Successfully removed $(highlight_text ${conflict})"
+        else
+            if check_installed "${conflict}"; then
+                print_err "Failed to remove conflict. $(emphasize_text Aborting..)"
+                exit 1
+            else
+                print_warn "Successfully removed $(highlight_text ${conflict}) with warning from ${PCKMAN}"
+            fi
+        fi
+    done
+}
+
 function main() {
 
     dotfiles_bannner
@@ -252,6 +276,24 @@ function main() {
         else
             print_info "Successfully installed Homebrew"
         fi
+    fi
+
+    print_section "Uninstalling Conflicts"
+    local conflicts_mac_only=()
+    local conflicts_linux_only=()
+    local conflicts_agnostic=("vim")
+
+    if test -n "$conflicts_agnostic"; then
+        print_info "$(emphasize_text Uninstalling Platform Agnostic Conflicts)"
+        uninstall_conflicts ${conflicts_agnostic[@]}
+    fi
+
+    if [ "$OS" = "MacOS" ] && [ -n "$conflicts_mac_only" ]; then
+        print_info "$(emphasize_text Uninstalling Mac Only Conflicts)"
+        uninstall_conflicts ${conflicts_mac_only[@]}
+    elif [ "$OS" = "Linux" ] && [ -n "$conflicts_linux_only" ]; then
+        print_info "$(emphasize_text Uninstalling Linux Only Conflicts)"
+        uninstall_conflicts ${conflicts_linux_only[@]}
     fi
 
     print_section "Installing Dependencies"
@@ -346,10 +388,11 @@ function main() {
 
     print_section "Creating Symlinks"
 
-    local syms_mac_only=()
+    local syms_mac_only=("/usr/local/bin/nvim /usr/local/bin/vim")
     local syms_linux_only=("${DOTFILES}/init.vim /root/.config/nvim/init.vim"
                            "${HOME}/.local/share/nvim/site/autoload/plug.vim /root/.local/share/nvim/site/autoload/plug.vim"
-                           "${DOTFILES}/i3_config ${HOME}/.config/i3/config")
+                           "${DOTFILES}/i3_config ${HOME}/.config/i3/config"
+                           "/usr/bin/nvim /usr/bin/vim")
 
     local syms_agnostic=("${DOTFILES}/zshrc ${HOME}/.zshrc"
                          "${DOTFILES}/init.vim ${HOME}/.config/nvim/init.vim"
