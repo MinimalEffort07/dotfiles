@@ -392,6 +392,7 @@ function main() {
     local syms_linux_only=("${DOTFILES}/init.vim /root/.config/nvim/init.vim"
                            "${HOME}/.local/share/nvim/site/autoload/plug.vim /root/.local/share/nvim/site/autoload/plug.vim"
                            "${DOTFILES}/i3_config ${HOME}/.config/i3/config"
+                           "${DOTFILES}/xmodmapmappings ${HOME}/.config/i3/xmodmapmappings"
                            "/usr/bin/nvim /usr/bin/vim")
 
     local syms_agnostic=("${DOTFILES}/zshrc ${HOME}/.zshrc"
