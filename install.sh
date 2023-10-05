@@ -485,6 +485,10 @@ function main() {
     else
         print_info "Installed $(highlight_text Neovim Plugins)"
     fi
+
+    print_info "$(emphasize_text switching dotfiles repo from https to ssh)"
+    git config --local remote.origin.url git@github.com:MinimalEffort07/dotfiles.git
+
 }
 
 main
