@@ -486,9 +486,27 @@ function main() {
         print_info "Installed $(highlight_text Neovim Plugins)"
     fi
 
-    print_info "$(emphasize_text switching dotfiles repo from https to ssh)"
+    print_info "$(emphasize_text Switching dotfiles repo from https to ssh)"
     git config --local remote.origin.url git@github.com:MinimalEffort07/dotfiles.git
+    print_info "Edited dotfile repo's $(highlight_text gitconfig)."
 
+    if [ ! -f ~/.xrandr_preferences.sh ]; then
+        print_info "$(emphasize_text Creating xrandr preferences)"
+
+        xrandr_output=$(xrandr | grep -Eo "^.* connected" | cut -d' ' -f1)
+        xrandr | grep -Eo "^ *[0-9]+x[0-9]+" | head -n 15
+        print_info "Choose a resolution from list above:"
+
+        read
+        echo -e "#!/bin/zsh\nxrandr --output ${xrandr_output} --mode ${REPLY}" > ~/.xrandr_preferences.sh
+        print_info "Created $(style_path ~/.xrandr_preferences) to be run at login"
+    fi
+
+    print_info "$(emphasize_text Changing Caps_Lock to Control)"
+    if grep XKBOPTIONS=\"\" /etc/default/keyboard &>/dev/null; then
+        sudo sed -i s/XKBOPTIONS=\"/XKBOPTIONS=\"ctrl:nocaps/g /etc/default/keyboard
+        print_info "Edited $(style_path /etc/default/keyboard)'s XKBOPTIONS and added option $(highlight_text ctrl:nocaps), restart to take effect"
+    fi
 }
 
 main

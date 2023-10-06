@@ -191,5 +191,5 @@ bindsym Control+Mod1+l exec "i3lock -c 000000"
 # auto lock the screen
 exec "xautolock -detectsleep -time 3 -locker \"i3lock -c 000000\""
 
-# Create xmodmappings
-xmodmap ~/.config/i3/xmodmapmappings
+# Set resolution
+exec "~/.xrandr_preferences.sh >/dev/null 2>/dev/null"
