@@ -45,6 +45,9 @@ set expandtab
 " Highlight search results
 set hlsearch
 
+" Markdown error pattern without the underscore
+syn match markdownError "\w\@<=\w\@="
+
 " ------------------------- Color Column Customisation -------------------------
 
 " Set colour column to column 80
