@@ -418,6 +418,11 @@ function main() {
 
     print_section "Executing Custom Commands"
 
+    print_info "$(emphasize_text Creating local config script at $(style_path ${HOME}/.dotfiles_local_config))"
+    if [ -f ~/.dotfiles_local_config ]; then
+        touch ~/.dotfiles_local_config && chmod +x ~/.dotfiles_local_config
+    fi
+
     if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
         print_info "$(highlight_text Vim-Plug) already installed. $(highlight_text Skipping..)"
     else
