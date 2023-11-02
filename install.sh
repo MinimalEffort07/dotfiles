@@ -299,7 +299,7 @@ function main() {
     print_section "Installing Dependencies"
 
     local deps_mac_only=("coreutils" "binutils" "gnu-sed")
-    local deps_linux_only=("i3")
+    local deps_linux_only=("i3" "rofi")
     local deps_agnostic=("curl" "zsh" "neovim" "pip" "gpg" "tar")
 
     if test -n "$deps_agnostic"; then
@@ -367,7 +367,8 @@ function main() {
     local dirs_mac_only=()
     local dirs_linux_only=("/root/.config/nvim/"
                            "/root/.local/share/nvim/site/autoload/"
-                           "${HOME}/.config/i3")
+                           "${HOME}/.config/i3"
+                           "${HOME}/.config/rofi")
 
     local dirs_agnostic=("${HOME}/.config/nvim"
                          "${HOME}/projects/minimaleffort"
@@ -392,6 +393,7 @@ function main() {
     local syms_linux_only=("${DOTFILES}/init.vim /root/.config/nvim/init.vim"
                            "${HOME}/.local/share/nvim/site/autoload/plug.vim /root/.local/share/nvim/site/autoload/plug.vim"
                            "${DOTFILES}/i3_config ${HOME}/.config/i3/config"
+                           "${DOTFILES}/config.rasi ${HOME}/.config/rofi/config.rasi"
                            "${DOTFILES}/xmodmapmappings ${HOME}/.config/i3/xmodmapmappings"
                            "/usr/bin/nvim /usr/bin/vim")
 
