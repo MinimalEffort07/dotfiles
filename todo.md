@@ -8,3 +8,6 @@ explicitly specified.
 
 3) Write brief description in the read me as to the different steps that the 
 script takes to install and setup the system. 
+
+3) Update all the existing 'mv' commands to use the GNU mv command with the 
+backup flag. 
