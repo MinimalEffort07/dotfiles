@@ -244,6 +244,12 @@ function main() {
 
     dotfiles_bannner
 
+    ###########################################################################
+    #                                                                         #
+    #        Determining Operating System and Setting Relevant Envvars        #
+    #                                                                         #
+    ###########################################################################
+
     print_section "Determining OS"
 
     if test "$(uname)" = "Darwin"; then
@@ -263,8 +269,11 @@ function main() {
     print_info "OS is: $(highlight_text ${OS})"
     print_info "Using $(highlight_text ${PCKMAN}) package manager"
 
-    # Install Homebrew if on MacOS and It isn't already installed
-    # -z True if length of string is 0.
+    ###########################################################################
+    #                                                                         #
+    #                 Configuring Package Manager On MacOS                    #
+    #                                                                         #
+    ###########################################################################
 
     if [ "$OS" = "MacOS" ] && [ -z "$(which  brew)" ]; then
         print_section "Installing Package Manager"
@@ -277,6 +286,12 @@ function main() {
             print_info "Successfully installed Homebrew"
         fi
     fi
+
+    ###########################################################################
+    #                                                                         #
+    #              Uninstalling Conflicting Software Packages                 #
+    #                                                                         #
+    ###########################################################################
 
     print_section "Uninstalling Conflicts"
     local conflicts_mac_only=()
@@ -296,6 +311,12 @@ function main() {
         uninstall_conflicts ${conflicts_linux_only[@]}
     fi
 
+    ###########################################################################
+    #                                                                         #
+    #                   Installing Software Dependencies                      #
+    #                                                                         #
+    ###########################################################################
+
     print_section "Installing Dependencies"
 
     local deps_mac_only=("coreutils" "binutils" "gnu-sed")
@@ -314,6 +335,12 @@ function main() {
         print_info "$(emphasize_text Installing Linux Only Dependencies)"
         install_deps ${deps_linux_only[@]}
     fi
+
+    ###########################################################################
+    #                                                                         #
+    #                   Installing Required Repositories                      #
+    #                                                                         #
+    ###########################################################################
 
     # Installing Github Repos to be installed in /opt
     print_section "Cloning Repositories"
@@ -349,6 +376,12 @@ function main() {
         fi
     fi
 
+    ###########################################################################
+    #                                                                         #
+    #               Configuring DOTFILES Environment Variable                 #
+    #                                                                         #
+    ###########################################################################
+
     print_section "Setting up DOTFILES Environment Variable"
 
     export DOTFILES="$(pwd)"
@@ -361,6 +394,12 @@ function main() {
         print_err "Failed to updated DOTFILES environment variable in zshrc"
         exit 1
     fi
+
+    ###########################################################################
+    #                                                                         #
+    #              Creating Required Configuration Directories                #
+    #                                                                         #
+    ###########################################################################
 
     print_section "Creating Directories"
 
@@ -386,6 +425,12 @@ function main() {
         print_info "$(emphasize_text Creating Linux Only Directories)"
         create_dirs "${dirs_linux_only[@]}"
     fi
+
+    ###########################################################################
+    #                                                                         #
+    #                Creating Symlinks To Configuration Files                 #
+    #                                                                         #
+    ###########################################################################
 
     print_section "Creating Symlinks"
 
@@ -418,10 +463,22 @@ function main() {
 
     print_section "Executing Custom Commands"
 
+    ###########################################################################
+    #                                                                         #
+    #                     Creating Local Config Script                        #
+    #                                                                         #
+    ###########################################################################
+
     print_info "$(emphasize_text Creating local config script at $(style_path ${HOME}/.dotfiles_local_config))"
     if [ -f ~/.dotfiles_local_config ]; then
         touch ~/.dotfiles_local_config && chmod +x ~/.dotfiles_local_config
     fi
+
+    ###########################################################################
+    #                                                                         #
+    #                    Installing Vim Plugin Manager                        #
+    #                                                                         #
+    ###########################################################################
 
     if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
         print_info "$(highlight_text Vim-Plug) already installed. $(highlight_text Skipping..)"
@@ -437,6 +494,11 @@ function main() {
         fi
     fi
 
+    ###########################################################################
+    #                                                                         #
+    #                 Setting Up Encrypted Git Config File                    #
+    #                                                                         #
+    ###########################################################################
     print_info "$(emphasize_text Setting up .gitconfigs)"
     print_info "Enter Password To Decrypt gitconfig.enc"
     gpg --output gitconfig.tar -d gitconfig.enc &>/dev/null
@@ -485,6 +547,12 @@ function main() {
     print_info "Adding $(style_path ~/.ssh/private-git/private-git.key) to ssh-agent"
     ssh-add ~/.ssh/private-git/private-git.key &>/dev/null
 
+    ###########################################################################
+    #                                                                         #
+    #                      Installing Neovim Plugins                          #
+    #                                                                         #
+    ###########################################################################
+
     print_info "$(emphasize_text Installing Neovim Plugins)"
     nvim --headless +PlugInstall +q +q &>/dev/null
     if [ $? -ne 0 ]; then
@@ -493,9 +561,21 @@ function main() {
         print_info "Installed $(highlight_text Neovim Plugins)"
     fi
 
+    ###########################################################################
+    #                                                                         #
+    #          Converting DOTFILES repo To Use SSH Instead Of HTTPS           #
+    #                                                                         #
+    ###########################################################################
+
     print_info "$(emphasize_text Switching dotfiles repo from https to ssh)"
     git config --local remote.origin.url git@github.com:MinimalEffort07/dotfiles.git
     print_info "Edited dotfile repo's $(highlight_text gitconfig)."
+
+    ###########################################################################
+    #                                                                         #
+    #                     Setting Up Screen Resolution                        #
+    #                                                                         #
+    ###########################################################################
 
     if [ ! -f ~/.xrandr_preferences.sh ]; then
         print_info "$(emphasize_text Creating xrandr preferences)"
@@ -508,6 +588,12 @@ function main() {
         echo -e "#!/bin/zsh\nxrandr --output ${xrandr_output} --mode ${REPLY}" > ~/.xrandr_preferences.sh
         print_info "Created $(style_path ~/.xrandr_preferences) to be run at login"
     fi
+
+    ###########################################################################
+    #                                                                         #
+    #                    Remapping Caps Lock To Control                       #
+    #                                                                         #
+    ###########################################################################
 
     print_info "$(emphasize_text Changing Caps_Lock to Control)"
     if grep XKBOPTIONS=\"\" /etc/default/keyboard &>/dev/null; then
