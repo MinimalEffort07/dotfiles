@@ -470,7 +470,7 @@ function main() {
     ###########################################################################
 
     print_info "$(emphasize_text Creating local config script at $(style_path ${HOME}/.dotfiles_local_config))"
-    if [ -f ~/.dotfiles_local_config ]; then
+    if [ ! -f ~/.dotfiles_local_config ]; then
         touch ~/.dotfiles_local_config && chmod +x ~/.dotfiles_local_config
     fi
 
@@ -499,6 +499,7 @@ function main() {
     #                 Setting Up Encrypted Git Config File                    #
     #                                                                         #
     ###########################################################################
+
     print_info "$(emphasize_text Setting up .gitconfigs)"
     print_info "Enter Password To Decrypt gitconfig.enc"
     gpg --output gitconfig.tar -d gitconfig.enc &>/dev/null
