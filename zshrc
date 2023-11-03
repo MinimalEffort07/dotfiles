@@ -67,6 +67,7 @@ alias sourcezsh="source ~/.zshrc"
 alias venv="source .v/bin/activate"
 
 alias dotfiles="cd ${DOTFILES}"
+alias krabby="cd ~/projects/minimaleffort/Krabby-Patty-Secret-Formula"
 
 alias c="clear"
 alias cl="clear"
