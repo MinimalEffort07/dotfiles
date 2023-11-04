@@ -113,10 +113,10 @@ function create_syms() {
             # Attempting backup of non symlink configuration files
             if mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
                 print_info "....$(style_path ${symarr[1]}) Successfully backed up to"\
-                           "$(style_path ${symarr[1]}.dotfiles.back)"
+                           "$(style_path ${symarr[1]}.dotfiles.bak)"
             elif sudo mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
                 print_warn "....$(style_path ${symarr[1]}) Successfully backed up to"\
-                    "$(style_path ${symarr[1]}.dotfiles.back). $(highlight_text Required sudo)"
+                    "$(style_path ${symarr[1]}.dotfiles.bak). $(highlight_text Required sudo)"
             else
                 print_warn "....Unable to backup $(syle_path ${symarr[1]})"
             fi
