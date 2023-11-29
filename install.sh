@@ -588,6 +588,8 @@ function main() {
         read
         echo -e "#!/bin/zsh\nxrandr --output ${xrandr_output} --mode ${REPLY}" > ~/.xrandr_preferences.sh
         print_info "Created $(style_path ~/.xrandr_preferences) to be run at login"
+        chmod +x ~/.xrandr_preferences.sh
+        ~/.xrandr_preferences.sh
     fi
 
     ###########################################################################
