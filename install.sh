@@ -601,6 +601,15 @@ function main() {
         sudo sed -i s/XKBOPTIONS=\"/XKBOPTIONS=\"ctrl:nocaps/g /etc/default/keyboard
         print_info "Edited $(style_path /etc/default/keyboard)'s XKBOPTIONS and added option $(highlight_text ctrl:nocaps), restart to take effect"
     fi
+
+    ###########################################################################
+    #                                                                         #
+    #                     Changing Default Shell To Zsh                       #
+    #                                                                         #
+    ###########################################################################
+    print_info "$(emphasize_text Changing Default Shell To Zsh)"
+    chsh -s $(which zsh)
+
 }
 
 main
