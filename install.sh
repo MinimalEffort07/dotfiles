@@ -581,12 +581,7 @@ function main() {
     if [ ! -f ~/.xrandr_preferences.sh ]; then
         print_info "$(emphasize_text Creating xrandr preferences)"
 
-        xrandr_output=$(xrandr | grep -Eo "^.* connected" | cut -d' ' -f1)
-        xrandr | grep -Eo "^ *[0-9]+x[0-9]+" | head -n 15
-        print_info "Choose a resolution from list above:"
-
-        read
-        echo -e "#!/bin/zsh\nxrandr --output ${xrandr_output} --mode ${REPLY}" > ~/.xrandr_preferences.sh
+        echo -e "#!/bin/zsh\nxrandr --output ${xrandr_output} --auto" > ~/.xrandr_preferences.sh
         print_info "Created $(style_path ~/.xrandr_preferences) to be run at login"
         chmod +x ~/.xrandr_preferences.sh
         ~/.xrandr_preferences.sh
