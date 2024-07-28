@@ -13,8 +13,18 @@ call plug#begin()
 
 Plug 'bcicen/vim-vice'
 Plug 'kutsan/zsh-system-clipboard'
+Plug 'ycm-core/YouCompleteMe'
 
 call plug#end()
+
+" ------------------------------- Ycm Customisation ---------------------------
+" Let clangd fully control code completion
+let g:ycm_clangd_uses_ycmd_caching = 0
+" Use installed clangd, not YCM-bundled clangd which doesn't get updates.
+let g:ycm_clangd_binary_path = exepath("clangd")
+
+" Use homebrew's clangd
+" let g:ycm_clangd_binary_path = trim(system('brew --prefix llvm')).'/bin/clangd'
 
 " ------------------------------- Misc Customisation ---------------------------
 
@@ -164,12 +174,6 @@ vnoremap <C-c> "*y
 vnoremap <C-g> "*y<ESC>:let $tdir=expand('%:p:h')<CR>:tabe<CR>:terminal<CR>i<CR>cd $tdir<CR>clear<CR>gr `pbpaste`<CR>
 
 " ----------- Terminal mode Custom Key Mappings -------------------------------
-
-" Turn numbers off when in terminal mode
-au TermEnter * setlocal nonumber nospell
-
-" Turn numbers back on when leaving terminal mode
-au TermLeave * setlocal number
 
 " Move back one tab
 tnoremap <C-b> <C-\><C-N>:tabp<CR>

@@ -321,7 +321,7 @@ function main() {
 
     local deps_mac_only=("coreutils" "binutils" "gnu-sed")
     local deps_linux_only=("i3" "rofi")
-    local deps_agnostic=("curl" "zsh" "neovim" "pip" "gpg" "tar")
+    local deps_agnostic=("curl" "zsh" "neovim" "pip" "gpg" "tar" "go")
 
     if test -n "$deps_agnostic"; then
         print_info "$(emphasize_text Installing Platform Agnostic Dependencies)"
