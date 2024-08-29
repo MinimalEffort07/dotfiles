@@ -53,3 +53,7 @@ To fix brightness buttons, ensure you have set the apropriate mask as above and
 then you need to ```enable display brightness keys``` in the power settings. I 
 haven't figured out where this value is stored on disk so I just use 
 ```xfce4-power-manager-settings``` and you can see the option there. 
+
+### Configuring Brightness
+Stop screen from dimming after inactivity:
+Potential Fix: ```gsettings set org.gnome.settings-daemon.plugins.power idle-brightness 100```

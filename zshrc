@@ -1,4 +1,5 @@
 
+
 # Prompt
 #
 # vcs_info is a function that (among other things) stores the branch name of the
@@ -57,6 +58,7 @@ export TERM=xterm-256color
 export PAGER=less
 export EDITOR=nvim
 export DOTFILES="~/projects/minimaleffort/dotfiles"
+export GEM_HOME="$HOME/.gem"
 
 alias vim="nvim"
 alias vi="nvim"
@@ -68,7 +70,7 @@ alias vimrc="vim ~/.config/nvim/init.vim"
 alias gdbinit="vim ~/.gdbinit"
 
 alias sourcezsh="source ~/.zshrc"
-alias venv="source .v/bin/activate"
+alias venv="source .venv/bin/activate"
 
 alias dotfiles="cd ${DOTFILES}"
 alias krabby="cd ~/projects/minimaleffort/Krabby-Patty-Secret-Formula"
@@ -110,6 +112,10 @@ alias gd="git diff"
 alias p="python3"
 alias ctf='docker start ctf && docker attach --detach-keys="ctrl-@" ctf'
 
+alias vim="nvim"
+alias vi="nvim"
+alias v="nvim"
+alias b="rm compile_commands; pushd kern/compile/ASST3; bmake clean -j16; rm compile_commands.json; bmake depend -j16; bear -- bmake -j16; bmake install -j16; popd; ln -s kern/compile/ASST3/compile_commands.json ./compile_commands.json"
 bindkey -v
 bindkey ^R history-incremental-search-backward
 bindkey ^P up-line-or-history
@@ -125,12 +131,15 @@ bindkey "^?" backward-delete-char
 
 export LS_COLORS='no=00;38;5;15:fi=00:rs=0:di=1;95:ln=01;38;5;111:mh=00:pi=48;5;230;38;5;136;01:so=48;5;230;38;5;136;01:bd=;4;230;38;5;142;01:cd=;1;230;38;5;94;01:or=38;5;009;48;5;052:su=48;5;160;38;5;230:sg=48;5;136;38;5;230:ca=30;41:st=48;5;33;38;5;230:ow=38;5;110:tw=48;5;64;38;5;230:ex=0;38;5;154:*.s=01;38;5;123:*.c=01;38;5;148:*.h=01;38;5;150:*.cpp=01;38;5;064:*.ru=01;38;5;088:*.js=01;38;5;003:*.sh=01;38;5;067:*Makefile=0;38;5;243:*Rakefile=0;38;5;124:*Gemfile=0;38;5;3:*Gemfile.lock=0;38;5;239:*.gemspec=0;38;5;3:*Procfile=0;38;5;244:*Gopkg.toml=0;38;5;3:*Gopkg.lock=0;38;5;239:*.gitignore=0;38;5;243:*.gitattributes=0;38;5;243:*.json=01;38;5;3:*.yml=01;38;5;3:*.yaml=01;38;5;3:*.xml=01;38;5;3:*.csv=01;38;5;3:*.pb=01;38;5;201:*.proto=01;38;5;201:*.bson=01;38;5;201:*.txt=01;38;5;15:*.tex=01;38;5;15:*.nfo=01;38;5;5:*.rdf=01;38;5;5:*.docx=01;38;5;5:*.pdf=01;38;5;5:*.markdown=01;38;5;5:*.md=01;38;5;5:*README=01;38;5;200:*README.md=01;38;5;200:*README.txt=01;38;5;200:*readme.txt=01;38;5;200:*LICENSE=01;38;5;165:*LICENSE.txt=01;38;5;165:*AUTHORS=01;38;5;165:*COPYRIGHT=01;38;5;165:*CONTRIBUTORS=01;38;5;165:*CONTRIBUTING.md=01;38;5;165:*PATENTS=01;38;5;165:*.bak=00;38;5;239:*.swp=00;38;5;239:*.tmp=00;38;5;239:*.temp=00;38;5;239:*.o=00;38;5;239:*.pyc=00;38;5;239:*.iso=01;38;5;209:*.dmg=01;38;5;209:*.zip=01;38;5;61:*.tar=00;38;5;61:*.tgz=01;38;5;61:*.lzh=01;38;5;61:*.z=01;38;5;61:*.Z=01;38;5;61:*.7z=01;38;5;61:*.gz=01;38;5;61:*.bz2=01;38;5;61:*.bz=01;38;5;61:*.deb=01;38;5;61:*.rpm=01;38;5;61:*.jar=01;38;5;61:*.rar=01;38;5;61:*.apk=01;38;5;61:*.gem=01;38;5;61:';
 
+
 # The following lines were added by compinstall
 
-zstyle ':completion:*' completer _complete _ignored _approximate
-zstyle ':completion:*' max-errors 0
-zstyle :compinstall filename '/Users/emmanuelchristianos/.zshrc'
+zstyle ':completion:*' completer _expand _complete _correct _approximate
+zstyle ':completion:*' matcher-list '' '' '' 'm:{[:lower:][:upper:]}={[:upper:][:lower:]}'
+zstyle :compinstall filename '/home/emmanuel/.zshrc'
 
 autoload -Uz compinit
 compinit
-# End of lines added by compinstall
+#  End of lines added by compinstall
+
+alias b="rm -rf build; scan-build --use-analyzer=$(which clang) cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=1; scan-build --use-analyzer=$(which clang) cmake --build build -j16"

@@ -11,21 +11,22 @@ autocmd VimEnter * if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
 
 call plug#begin()
 
+Plug 'ycm-core/YouCompleteMe'
 Plug 'bcicen/vim-vice'
 Plug 'kutsan/zsh-system-clipboard'
 Plug 'ycm-core/YouCompleteMe'
 
 call plug#end()
 
-" ------------------------------- Ycm Customisation ---------------------------
+" ------------------------------- YouCompleteMe Customisation ---------------------------
 " Let clangd fully control code completion
 let g:ycm_clangd_uses_ycmd_caching = 0
 " Use installed clangd, not YCM-bundled clangd which doesn't get updates.
-let g:ycm_clangd_binary_path = exepath("clangd")
+" let g:ycm_clangd_binary_path = exepath("clangd")
 
-" Use homebrew's clangd
-" let g:ycm_clangd_binary_path = trim(system('brew --prefix llvm')).'/bin/clangd'
-
+nnoremap <C-f> :YcmCompleter FixIt<CR>
+nnoremap <C-g> :YcmCompleter GoTo<CR>
+set completeopt-=preview
 " ------------------------------- Misc Customisation ---------------------------
 
 " Copies to to clipboard
@@ -62,6 +63,9 @@ syn match markdownError "\w\@<=\w\@="
 
 " Set colour column to column 80
 set cc=80
+
+hi Bang ctermfg=White guifg=White
+match Bang /\%>79v.*\%<81v/
 
 " Set colour of colour column to blue
 hi ColorColumn ctermbg=grey
@@ -139,18 +143,13 @@ nnoremap <C-t> :tabe
 nnoremap <C-i> :vsplit
 
 " Start the command to open a new split
-nnoremap <C-o> :split
+" nnoremap <C-o> :split
 
 " Copy highlighted term to global clipboard
 nnoremap <C-c> *gn"*y:let @/ = ""<CR>
 
-" Terminal Grep text
-" nnoremap <C-g> *gn"*y<ESC>:let @/ = ""<CR>:let $tdir=expand('%:p:h')<CR>:tabe<CR>:terminal<CR>i<CR>cd $tdir<CR>clear<CR>gr `pbpaste`<CR>
-
-nnoremap <C-g> :YcmCompleter GoTo<CR>
-
 " Create SED to clear all trailing white space
-nnoremap clear :%s/ \+$//gc<CR>
+nnoremap <C-d> :%s/ \+$//gc<CR>
 
 " Format file in accordance to vim guidelines for linux kernel developement
 nnoremap <C-k> :set tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab<CR>:retab!<CR>
@@ -169,9 +168,6 @@ vnoremap <SPACE> v
 
 " Copy selection to global clipboard
 vnoremap <C-c> "*y
-
-" Terminal Grep text
-vnoremap <C-g> "*y<ESC>:let $tdir=expand('%:p:h')<CR>:tabe<CR>:terminal<CR>i<CR>cd $tdir<CR>clear<CR>gr `pbpaste`<CR>
 
 " ----------- Terminal mode Custom Key Mappings -------------------------------
 

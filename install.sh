@@ -407,6 +407,7 @@ function main() {
     local dirs_linux_only=("/root/.config/nvim/"
                            "/root/.local/share/nvim/site/autoload/"
                            "${HOME}/.config/i3"
+                           "/etc/i3"
                            "${HOME}/.config/rofi")
 
     local dirs_agnostic=("${HOME}/.config/nvim"
@@ -438,6 +439,7 @@ function main() {
     local syms_linux_only=("${DOTFILES}/init.vim /root/.config/nvim/init.vim"
                            "${HOME}/.local/share/nvim/site/autoload/plug.vim /root/.local/share/nvim/site/autoload/plug.vim"
                            "${DOTFILES}/i3_config ${HOME}/.config/i3/config"
+                           "${DOTFILES}/i3_config /etc/i3/config"
                            "${DOTFILES}/config.rasi ${HOME}/.config/rofi/config.rasi"
                            "${DOTFILES}/xmodmapmappings ${HOME}/.config/i3/xmodmapmappings"
                            "/usr/bin/nvim /usr/bin/vim")
