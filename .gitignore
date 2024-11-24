@@ -1,1 +1,3 @@
 *.dotfiles.bak
+*.log
+lazy-lock.json
