@@ -1,27 +1,29 @@
+[general]
+import = ["~/.config/alacritty/cyberdream.toml"]
+working_directory = "C:\\Users\\Min"
+
 [keyboard]
 bindings = [
     { key = "Escape", mods = "Shift", action = "ToggleViMode"},
     { key = "Return", mods = "Alt|Shift", action = "CreateNewWindow" },
+    { key = "Return", mods = "Control|Shift", action = "SpawnNewInstance" },
     { key = "Q", mods = "Alt", action = "Quit" },
 ]
 
 [font]
 size = 12.5
 
-[general]
-working_directory = "C:\\Users\\Min"
-
 [window]
-dimensions = { columns = 103, lines = 50 }
-dynamic_padding = true
+dimensions = { columns = 133, lines = 35 }
+dynamic_padding = false
 dynamic_title = true
-position = { x=2, y=5 }
-padding = { x=6, y=6 }
+position = { x=720, y=310 }
 decorations = "Full"
 decorations_theme_variant = "Dark"
+opacity = 0.92
 
 [terminal]
 shell = { program = "powershell", args = ["/nologo"] }
 
-[debug]
-render_timer = true
+[colors.primary]
+background = "#000000"
