@@ -1,0 +1,56 @@
+1. Disabled Bing Search in Windows Seach:
+- Create DWORD: Computer\HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\Explorer\DisableSearchBoxSuggestions
+- And set it to 1.
+- Restart 'Explorer' process
+2. Make PowerShell Preview the default terminal in Windows Terminal and set the PowerShell Preview profile to always run as Administrator
+- Pin to taskbar. 
+3. Remap 'Caps Lock' To 'Left Control' using PowerToys
+4. Set Firefox as default browser
+5. Set PowerToys to "Always Run As Administrator"
+6. Pin Home directory to 'Quick Access'
+7. Show hidden items in Explorer
+8. Download ps1 from dotfiles repo
+9. Copy over init.lua from Dotfiles repo to `~/AppData/Local/nvim/init.lua`
+10. Delete useless files from C:\Users\Min\<here>
+11. Disable Windows Error Reporting ( service > Windows Error Reporting > Startup: disabled )
+12. Create a scripts directory and add it to PATH
+13. System > Multi-tasking -> unselect "When I snap a window, suggest what I can snap next to it"
+14. System > Multi-tasking -> unselect "Show snap layouts when i drag a window to the top of my screen"
+15. System > Multi-tasking -> unselect "Show snap layouts when i hover over a winodws maximise button"
+16. System > Multi-tasking -> unselect "Show my snapped winodws when i hover over taskbar apps.."
+17. Get alacritty.toml form dotfiles
+18. Disable the scum that is OneDrive: WinPro: (gpedit.msc > Computer Configuration > Administrative Templates > Windows Components > OnceDrive > Prevent the usageo of OneDrive for file storage > Enable )
+19. Powertoys create shortcut mapping in forefox Alt+Enter == F11 (Alt+Enter to fullscreen)
+
+Installed Programs
+1. Firefox
+3. Visual Studio 2022 Community
+4. PowerShell Preview
+5. Sysinternals Suite
+6. Windbg
+7. Explorer Suite
+8. PowerToys
+9. (Uninstall) Mail and Calendar
+10. (Uninstall) Dolby Access
+11. (Uninstall) Microsoft 365 (Office)
+12. (Uninstall) Cortana
+13. (Uninstall) Feedback Hub
+14. (Uninstall) Maps
+15. (Uninstall) Microsoft To Do 
+16. (Uninstall) News
+17. (Uninstall) Paint
+18. (Uninstall) People
+19. (Uninstall) Quick Assist
+20. (Uninstall) Solitaire & Casual Games
+21. (Uninstall) Sound Recorder
+22. Install Chocolatey
+23. Install Neovim through Choco
+24. Install Git through Choco
+25. Install Curl through Choco
+28. Install file through Choco
+29. Install go through Choco
+30. Install openssl through Choco
+31. Install IDA Free
+32. Install IDA Pro
+33. Install PSReadLine Module
+34. Install Alacrity
