@@ -143,6 +143,3 @@ compinit
 #  End of lines added by compinstall
 
 alias b="rm -rf build; scan-build --use-analyzer=$(which clang) cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=1; scan-build --use-analyzer=$(which clang) cmake --build build -j16"
-
-# Remap caps lock to ctrl
-setxkbmap -option "ctrl:nocaps"

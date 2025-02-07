@@ -404,14 +404,11 @@ function main() {
     print_section "Creating Directories"
 
     local dirs_mac_only=()
-    local dirs_linux_only=("/root/.config/nvim/"
-                           "/root/.local/share/nvim/site/autoload/"
-                           "${HOME}/.config/i3"
+    local dirs_linux_only=("${HOME}/.config/i3"
                            "/etc/i3"
                            "${HOME}/.config/rofi")
 
-    local dirs_agnostic=("${HOME}/.config/nvim"
-                         "${HOME}/projects/minimaleffort"
+    local dirs_agnostic=("${HOME}/projects/minimaleffort"
                          "${HOME}/projects/private-git")
 
     if test -n "$dirs_agnostic"; then
@@ -436,8 +433,8 @@ function main() {
     print_section "Creating Symlinks"
 
     local syms_mac_only=("/usr/local/bin/nvim /usr/local/bin/vim")
-    local syms_linux_only=("${DOTFILES}/init.vim /root/.config/nvim/init.vim"
-                           "${HOME}/.local/share/nvim/site/autoload/plug.vim /root/.local/share/nvim/site/autoload/plug.vim"
+    local syms_linux_only=("${DOTFILES}/nvim /root/.config/nvim"
+                           "${DOTFILES}/nvim ${HOME}/.config/"
                            "${DOTFILES}/i3_config ${HOME}/.config/i3/config"
                            "${DOTFILES}/i3_config /etc/i3/config"
                            "${DOTFILES}/config.rasi ${HOME}/.config/rofi/config.rasi"
@@ -445,7 +442,6 @@ function main() {
                            "/usr/bin/nvim /usr/bin/vim")
 
     local syms_agnostic=("${DOTFILES}/zshrc ${HOME}/.zshrc"
-                         "${DOTFILES}/init.vim ${HOME}/.config/nvim/init.vim"
                          "${DOTFILES}/gdbinit ${HOME}/.gdbinit")
 
 
@@ -482,19 +478,19 @@ function main() {
     #                                                                         #
     ###########################################################################
 
-    if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
-        print_info "$(highlight_text Vim-Plug) already installed. $(highlight_text Skipping..)"
-    else
-        sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
-            https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim' &>/dev/null
+    #if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
+    #    print_info "$(highlight_text Vim-Plug) already installed. $(highlight_text Skipping..)"
+    #else
+    #    sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
+    #        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim' &>/dev/null
 
-        if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
-            print_info "Successfully installed $(highlight_text Vim-Plug)"
-        else
-            print_err "Failed to install $(highlight_text Vim-Plug)"
-            exit 1
-        fi
-    fi
+    #    if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
+    #        print_info "Successfully installed $(highlight_text Vim-Plug)"
+    #    else
+    #        print_err "Failed to install $(highlight_text Vim-Plug)"
+    #        exit 1
+    #    fi
+    #fi
 
     ###########################################################################
     #                                                                         #
@@ -556,13 +552,13 @@ function main() {
     #                                                                         #
     ###########################################################################
 
-    print_info "$(emphasize_text Installing Neovim Plugins)"
-    nvim --headless +PlugInstall +q +q &>/dev/null
-    if [ $? -ne 0 ]; then
-        print_warn "Failed To Install $(highlight_text Neovim Plugins)"
-    else
-        print_info "Installed $(highlight_text Neovim Plugins)"
-    fi
+    #print_info "$(emphasize_text Installing Neovim Plugins)"
+    #nvim --headless +PlugInstall +q +q &>/dev/null
+    #if [ $? -ne 0 ]; then
+    #    print_warn "Failed To Install $(highlight_text Neovim Plugins)"
+    #else
+    #    print_info "Installed $(highlight_text Neovim Plugins)"
+    #fi
 
     ###########################################################################
     #                                                                         #
