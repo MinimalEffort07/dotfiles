@@ -21,6 +21,11 @@
 17. Get alacritty.toml form dotfiles
 18. Disable the scum that is OneDrive: WinPro: (gpedit.msc > Computer Configuration > Administrative Templates > Windows Components > OnceDrive > Prevent the usageo of OneDrive for file storage > Enable )
 19. Powertoys create shortcut mapping in forefox Alt+Enter == F11 (Alt+Enter to fullscreen)
+20. Create new ssh key and add it to github
+21. Clone down obsidian vault
+22. Setup obsidian, enable vim in the editor, enable community plugins.
+23. Install obsidian plugins: git, vim
+24. Setup global .gitconfig
 
 Installed Programs
 1. Firefox
@@ -54,3 +59,5 @@ Installed Programs
 32. Install IDA Pro
 33. Install PSReadLine Module
 34. Install Alacrity
+35. Install Obsidian
+36. Install Spotify
