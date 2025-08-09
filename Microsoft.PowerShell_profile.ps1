@@ -30,8 +30,8 @@ $PSStyle.FileInfo.Directory = "`e[32;1m";
 $PSStyle.FileInfo.SymbolicLink = "`e[35;6m";
 
 # Environment Variables --------------------------------------------------------
-$vimrc = $env:HOMEPATH + "\Appdata\Local\nvim\init.lua"
-$dotifles = "~\projects\minimaleffort\dotfiles"
+$vimrc = "~\Appdata\Local\nvim\init.lua"
+$dotfiles = "~\projects\minimaleffort\dotfiles"
 
 # System Aliases ---------------------------------------------------------------
 Set-Alias -Name gh -Value Get-Help
