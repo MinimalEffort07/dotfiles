@@ -3,7 +3,7 @@ vim.keymap.set('i', 'jk', '<ESC>', { desc = "Enter normal mode" })
 vim.keymap.set('i', 'JK', '<ESC>', { desc = "Enter normal mode" })
 
 -- Normal Mode Mappings
-vim.keymap.set('n', 'q', ':q<CR>', { desc = "Quit if there is no unsaved changes" })
+vim.keymap.set('n', 'Q', ':q<CR>', { desc = "Quit if there is no unsaved changes" })
 vim.keymap.set('n', 'q1', ':q!<CR>', { desc = "Force quit without saving" })
 vim.keymap.set('n', 's', ':w<CR>', { desc = "Save buffer" })
 vim.keymap.set('n', '<CR>', ':nohlsearch<CR>', { desc = "Unhighlight search results", noremap = false })

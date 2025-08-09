@@ -6,6 +6,7 @@ require('options')
 vim.cmd("colorscheme tokyonight")
 
 require('lspconfig').pyright.setup({})
+require('lspconfig').clangd.setup({})
 
 require 'lspconfig'.lua_ls.setup {
     on_init = function(client)

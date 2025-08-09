@@ -1,3 +1,15 @@
+# Import/Install Modules --------------------------------------------------------
+try {
+    Import-Module Posh-Git
+} catch {
+    echo "Posh-Git is not installed, installing.."
+    Install-Module posh-git -Scope CurrentUser -force
+    Import-Module Posh-Git
+}
+
+# Setup Prompt -----------------------------------------------------------------
+$GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
+
 # PSReadline Mappings ----------------------------------------------------------
 Set-PSReadLineOption -EditMode Vi
 Set-PSReadLineOption -ViModeIndicator Cursor
@@ -35,6 +47,11 @@ $dotfiles = "~\projects\minimaleffort\dotfiles"
 
 # System Aliases ---------------------------------------------------------------
 Set-Alias -Name gh -Value Get-Help
+Set-Alias -Name find -Value fd.exe
+Set-Alias -Name celar -Value clear
+Set-Alias -Name claer -Value clear
+Set-Alias -Name celer -Value clear
+Set-Alias -Name cls -Value clear
 
 # RC Aliases -------------------------------------------------------------------
 function Edit-Profile() { nvim $profile }
@@ -46,6 +63,8 @@ Set-Alias -Name vimrc -Value Edit-Vimrc
 function Update-Dotfiles() { pushd $dotfiles; git add -u; git commit -m "update dotfiles"; git push; popd; }
 
 # Git Aliases ------------------------------------------------------------------
+Set-Alias -Name g -Value git
+
 function Git-Status { git status }
 Set-Alias -Name gst -Value Git-Status
 
@@ -60,6 +79,10 @@ Set-Alias -Name gl -Value Git-Pull
 
 function Git-Push { git push $args }
 Set-Alias -Name gp -Value Git-Push
+
+# Python Aliases ---------------------------------------------------------------
+function Enter-VirtualEnv() { $(find activate.ps1) }
+
 
 # Vim Aliases ------------------------------------------------------------------
 Set-Alias -Name v -Value nvim
