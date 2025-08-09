@@ -16,6 +16,7 @@ Set-PSReadLineKeyHandler -Chord 'j' -ScriptBlock {
     }
   }
 }
+Set-PSReadLineOption -PredictionSource None
 
 # Remove Some Built-In Aliases -------------------------------------------------
 del alias:gc -Force
@@ -29,7 +30,8 @@ $PSStyle.FileInfo.Directory = "`e[32;1m";
 $PSStyle.FileInfo.SymbolicLink = "`e[35;6m";
 
 # Environment Variables --------------------------------------------------------
-$env:vimrc = $env:HOMEPATH + "\Appdata\Local\nvim\init.lua"
+$vimrc = $env:HOMEPATH + "\Appdata\Local\nvim\init.lua"
+$dotifles = "~\projects\minimaleffort\dotfiles"
 
 # System Aliases ---------------------------------------------------------------
 Set-Alias -Name gh -Value Get-Help
@@ -38,8 +40,10 @@ Set-Alias -Name gh -Value Get-Help
 function Edit-Profile() { nvim $profile }
 Set-Alias -Name rc -Value Edit-Profile
 
-function Edit-Vimrc() { nvim $env:vimrc }
+function Edit-Vimrc() { nvim $vimrc }
 Set-Alias -Name vimrc -Value Edit-Vimrc
+
+function Update-Dotfiles() { pushd $dotfiles; git add -u; git commit -m "update dotfiles"; git push; popd; }
 
 # Git Aliases ------------------------------------------------------------------
 function Git-Status { git status }
