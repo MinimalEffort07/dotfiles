@@ -3,7 +3,7 @@ require('keybinds')
 require('autocommands')
 require('options')
 
-vim.cmd("colorscheme cyberdream")
+vim.cmd("colorscheme tokyonight")
 
 require('lspconfig').pyright.setup({})
 

@@ -22,8 +22,14 @@ del alias:gc -Force
 del alias:gl -Force
 del alias:gp -Force
 
+# Misc -------------------------------------------------------------------------
+
+# Stop highlighting directories, instead just change their colour
+$PSStyle.FileInfo.Directory = "`e[32;1m";
+$PSStyle.FileInfo.SymbolicLink = "`e[35;6m";
+
 # Environment Variables --------------------------------------------------------
-$env:vimrc = $env:HOMEPATH + "\Appdata\Local\nvim\init.vim"
+$env:vimrc = $env:HOMEPATH + "\Appdata\Local\nvim\init.lua"
 
 # System Aliases ---------------------------------------------------------------
 Set-Alias -Name gh -Value Get-Help

@@ -57,7 +57,9 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
         if client.supports_method('textDocument/completion') then
             -- Enable auto-completion
-            vim.lsp.completion.enable(true, client.id, args.buf, { autotrigger = false })
+            if vim.lsp.completion then
+                vim.lsp.completion.enable(true, client.id, args.buf, { autotrigger = false })
+            end
         end
 
         if client.supports_method('textDocument/inlayHint') then
