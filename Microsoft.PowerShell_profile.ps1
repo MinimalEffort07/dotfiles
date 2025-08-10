@@ -54,7 +54,7 @@ Set-Alias -Name rc -Value Edit-Profile
 function Edit-Vimrc() { nvim $vimrc }
 Set-Alias -Name vimrc -Value Edit-Vimrc
 
-function Update-Dotfiles() { pushd $dotfiles; git add -u; git commit -m "update dotfiles"; git push; popd; }
+function Update-Dotfiles() { pushd $dotfiles; git pull; git add -u; git commit -m "update dotfiles"; git push; popd; }
 
 # Git Aliases ------------------------------------------------------------------
 Set-Alias -Name g -Value git
