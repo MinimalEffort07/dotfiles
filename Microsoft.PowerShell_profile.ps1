@@ -1,11 +1,5 @@
 # Import/Install Modules --------------------------------------------------------
-try {
-    Import-Module Posh-Git
-} catch {
-    echo "Posh-Git is not installed, installing.."
-    Install-Module posh-git -Scope CurrentUser -force
-    Import-Module Posh-Git
-}
+Import-Module Posh-Git
 
 # Setup Prompt -----------------------------------------------------------------
 $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
@@ -81,8 +75,24 @@ function Git-Push { git push $args }
 Set-Alias -Name gp -Value Git-Push
 
 # Python Aliases ---------------------------------------------------------------
-function Enter-VirtualEnv() { $(find activate.ps1) }
-
+function Enter-VirtualEnv() {
+    $venvpath = $(find -HI activate.ps1)
+    if ( $venvpath ) {
+        if ( ( $venvpath | measure | select Count ).Count -gt 1 ) {
+            echo "Enter number to select virtual environment: "
+            $count = 1
+            $venvpath | ForEach-Object { echo "$count $_"; $count += 1; }
+            $option = Read-Host
+            echo $venvpath[$option-1]
+            Invoke-Expression "$venvpath[$option-1]"
+        } else {
+            Invoke-Expression "$venvpath"
+        }
+    } else { 
+        echo "Dind't find venv";
+    }
+}
+Set-Alias -Name venv -Value Enter-VirtualEnv
 
 # Vim Aliases ------------------------------------------------------------------
 Set-Alias -Name v -Value nvim
