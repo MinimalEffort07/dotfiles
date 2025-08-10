@@ -85,14 +85,5 @@ vim.lsp.enable('clangd')
 -- vim.lsp.enable('powershell_es')
 
 require 'lspconfig'.powershell_es.setup {
-    bundle_path = "C:/Users/Emmanuel Christianos/tools/PowerShellEditorServices",
+    bundle_path = "~/tools/PowerShellEditorServices",
 }
--- This is the default configuration
--- require('powershell').setup({
---     capabilities = vim.lsp.protocol.make_client_capabilities(),
---     bundle_path = "C:/Users/Emmanuel Christianos/tools/PowerShellEditorServices",
---     init_options = vim.empty_dict(),
---     settings = vim.empty_dict(),
---     shell = "pwsh",
---     handlers = base_handlers, -- see lua/powershell/handlers.lua
--- })

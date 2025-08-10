@@ -25,9 +25,9 @@ Set-PSReadLineKeyHandler -Chord 'j' -ScriptBlock {
 Set-PSReadLineOption -PredictionSource None
 
 # Remove Some Built-In Aliases -------------------------------------------------
-del alias:gc -Force
-del alias:gl -Force
-del alias:gp -Force
+Remove-Item alias:gc -Force
+Remove-Item alias:gl -Force
+Remove-Item alias:gp -Force
 
 # Misc -------------------------------------------------------------------------
 
@@ -54,42 +54,42 @@ Set-Alias -Name rc -Value Edit-Profile
 function Edit-Vimrc() { nvim $vimrc }
 Set-Alias -Name vimrc -Value Edit-Vimrc
 
-function Update-Dotfiles() { pushd $dotfiles; git add -u; git commit -m "update dotfiles"; git pull; git push; popd; }
+function Update-Dotfiles() { Push-Location $dotfiles; git add -u; git commit -m "update dotfiles"; git pull; git push; Pop-Location; }
 
 # Git Aliases ------------------------------------------------------------------
 Set-Alias -Name g -Value git
 
-function Git-Status { git status }
-Set-Alias -Name gst -Value Git-Status
+function Invoke-GitStatus { git status }
+Set-Alias -Name gst -Value Invoke-GitStatus
 
-function Git-Add { git add $args }
-Set-Alias -Name ga -Value Git-Add
+function Invoke-GitAdd { git add $args }
+Set-Alias -Name ga -Value Invoke-GitAdd
 
-function Git-Commit { git commit $args }
-Set-Alias -Name gc -Value Git-Commit
+function Invoke-GitCommit { git commit $args }
+Set-Alias -Name gc -Value Invoke-GitCommit
 
-function Git-Pull { git pull $args }
-Set-Alias -Name gl -Value Git-Pull
+function Invoke-GitPull { git pull $args }
+Set-Alias -Name gl -Value Invoke-GitPull
 
-function Git-Push { git push $args }
-Set-Alias -Name gp -Value Git-Push
+function Invoke-GitPush { git push $args }
+Set-Alias -Name gp -Value Invoke-GitPush
 
 # Python Aliases ---------------------------------------------------------------
 function Enter-VirtualEnv() {
     $venvpath = $(find -HI activate.ps1)
     if ( $venvpath ) {
-        if ( ( $venvpath | measure | select Count ).Count -gt 1 ) {
-            echo "Enter number to select virtual environment: "
+        if ( ( $venvpath | Measure-Object | Select-Object Count ).Count -gt 1 ) {
+            Write-Output "Enter number to select virtual environment: "
             $count = 1
-            $venvpath | ForEach-Object { echo "$count $_"; $count += 1; }
+            $venvpath | ForEach-Object { Write-Output "$count $_"; $count += 1; }
             $option = Read-Host
-            echo $venvpath[$option-1]
+            Write-Output $venvpath[$option-1]
             Invoke-Expression "$venvpath[$option-1]"
         } else {
             Invoke-Expression "$venvpath"
         }
     } else { 
-        echo "Dind't find venv";
+        Write-Output "Dind't find venv";
     }
 }
 Set-Alias -Name venv -Value Enter-VirtualEnv
