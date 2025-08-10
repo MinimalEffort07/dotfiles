@@ -88,3 +88,4 @@ function Enter-VirtualEnv() { $(find activate.ps1) }
 Set-Alias -Name v -Value nvim
 Set-Alias -Name vi -Value nvim
 Set-Alias -Name vim -Value nvim
+Set-Alias -Name cim -Value nvim
