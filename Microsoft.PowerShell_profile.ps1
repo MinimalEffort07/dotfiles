@@ -10,18 +10,6 @@ Set-PSReadLineOption -ViModeIndicator Cursor
 Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
 Set-PSReadLineKeyHandler -Chord "Ctrl-n" -Function NextHistory
 Set-PSReadLineKeyHandler -Chord "Ctrl-p" -Function PreviousHistory
-Set-PSReadLineKeyHandler -Chord 'j' -ScriptBlock {
-  if ([Microsoft.PowerShell.PSConsoleReadLine]::InViInsertMode()) {
-    $key = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    if ($key.Character -eq 'k') {
-      [Microsoft.PowerShell.PSConsoleReadLine]::ViCommandMode()
-    }
-    else {
-      [Microsoft.Powershell.PSConsoleReadLine]::Insert('j')
-      [Microsoft.Powershell.PSConsoleReadLine]::Insert($key.Character)
-    }
-  }
-}
 Set-PSReadLineOption -PredictionSource None
 
 # Remove Some Built-In Aliases -------------------------------------------------
