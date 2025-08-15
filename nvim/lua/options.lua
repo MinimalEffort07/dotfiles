@@ -66,3 +66,5 @@ vim.opt.autochdir= true
 
 -- Disable mouse supprt (Helpful to stop accidental mousepad touches from moving curser around file)
 vim.opt.mouse = ""
+
+vim.o.ff = 'unix'
