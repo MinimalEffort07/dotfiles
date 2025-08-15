@@ -16,6 +16,7 @@ Set-PSReadLineOption -PredictionSource None
 Remove-Item alias:gc -Force
 Remove-Item alias:gl -Force
 Remove-Item alias:gp -Force
+Remove-Item alias:sl -Force
 
 # Misc -------------------------------------------------------------------------
 
@@ -32,8 +33,10 @@ Set-Alias -Name gh -Value Get-Help
 Set-Alias -Name find -Value fd.exe
 Set-Alias -Name celar -Value clear
 Set-Alias -Name claer -Value clear
+Set-Alias -Name clea -Value clear
 Set-Alias -Name celer -Value clear
 Set-Alias -Name cls -Value clear
+Set-Alias -Name sl -Value ls
 
 # RC Aliases -------------------------------------------------------------------
 function Edit-Profile() { nvim $profile }
@@ -87,3 +90,7 @@ Set-Alias -Name v -Value nvim
 Set-Alias -Name vi -Value nvim
 Set-Alias -Name vim -Value nvim
 Set-Alias -Name cim -Value nvim
+
+# Misc Aliases ------------------------------------------------------------------
+function Invoke-RipGrep() { rg -H --hidden --no-ignore $args }
+Set-Alias -Name grep -Value Invoke-RipGrep
