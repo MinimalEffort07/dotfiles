@@ -87,3 +87,5 @@ vim.lsp.enable('clangd')
 require 'lspconfig'.powershell_es.setup {
     bundle_path = "~/tools/PowerShellEditorServices",
 }
+
+vim.lsp.enable("neocmake")
