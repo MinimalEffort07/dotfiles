@@ -36,6 +36,7 @@ Set-Alias -Name clea -Value clear
 Set-Alias -Name celer -Value clear
 Set-Alias -Name cls -Value clear
 Set-Alias -Name sl -Value ls
+Set-Alias -Name l -Value ls
 
 # RC Aliases -------------------------------------------------------------------
 function Edit-Profile() { nvim $profile }
