@@ -12,6 +12,7 @@ vim.keymap.set('n', '*', ':keepjumps normal! mi*`i<CR>',
 vim.keymap.set('n', '<C-d>', '<C-d>zz', { desc = "Move down half a page but keep cursor in the center of page" })
 vim.keymap.set('n', '<C-u>', '<C-u>zz', { desc = "Move up half a page but keep cursor in the center of page" })
 vim.keymap.set('n', '<leader>p', '\"+p')
+vim.keymap.set('n', '<C-G>', ':FzfLua live_grep<CR>')
 vim.keymap.set('n', 'g1', ':1tabn<cr>', { desc = "Open tab1", noremap = true })
 vim.keymap.set('n', 'g2', ':2tabn<cr>', { desc = "Open tab2", noremap = true })
 vim.keymap.set('n', 'g3', ':3tabn<cr>', { desc = "Open tab3", noremap = true })

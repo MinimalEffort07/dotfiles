@@ -30,7 +30,6 @@ $dotfiles = "~\projects\minimaleffort\dotfiles"
 
 # System Aliases ---------------------------------------------------------------
 Set-Alias -Name gh -Value Get-Help
-Set-Alias -Name find -Value fd.exe
 Set-Alias -Name celar -Value clear
 Set-Alias -Name claer -Value clear
 Set-Alias -Name clea -Value clear
@@ -94,3 +93,6 @@ Set-Alias -Name cim -Value nvim
 # Misc Aliases ------------------------------------------------------------------
 function Invoke-RipGrep() { rg -H --hidden --no-ignore $args }
 Set-Alias -Name grep -Value Invoke-RipGrep
+
+function Invoke-Find() { fd.exe -HIi $args }
+Set-Alias -Name find -Value Invoke-FInd

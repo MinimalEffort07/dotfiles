@@ -42,8 +42,6 @@ vim.lsp.config('lua_ls', {
 
         client.config.settings.Lua = vim.tbl_deep_extend('force', client.config.settings.Lua, {
             runtime = {
-                -- Tell the language server which version of Lua you're using (most
-                -- likely LuaJIT in the case of Neovim)
                 version = 'LuaJIT',
                 -- Tell the language server how to find Lua modules same way as Neovim
                 -- (see `:h lua-module-load`)
@@ -55,20 +53,13 @@ vim.lsp.config('lua_ls', {
             -- Make the server aware of Neovim runtime files
             workspace = {
                 checkThirdParty = false,
+                -- Tells lua_ls where to look for require files
                 library = {
-                    vim.env.VIMRUNTIME
-                    -- Depending on the usage, you might want to add additional paths
-                    -- here.
-                    -- '${3rd}/luv/library'
-                    -- '${3rd}/busted/library'
+                    vim.env.VIMRUNTIME,
+                    -- Needed to enable "go to defintion" on the require("*") files above. Otherwise
+                    -- lua_ls won't know where to look for require files.
+                    vim.fn.stdpath("config")
                 }
-                -- Or pull in all of 'runtimepath'.
-                -- NOTE: this is a lot slower and will cause issues when working on
-                -- your own configuration.
-                -- See https://github.com/neovim/nvim-lspconfig/issues/3189
-                -- library = {
-                --   vim.api.nvim_get_runtime_file('', true),
-                -- }
             }
         })
     end,
@@ -81,11 +72,10 @@ vim.lsp.enable('lua_ls')
 vim.lsp.config('clangd', { capabilities = capabilities })
 vim.lsp.enable('clangd')
 
--- vim.lsp.config('powershell_es', { capabilities = capabilities })
--- vim.lsp.enable('powershell_es')
-
 require 'lspconfig'.powershell_es.setup {
     bundle_path = "~/tools/PowerShellEditorServices",
 }
 
 vim.lsp.enable("neocmake")
+
+require("fzf-lua").setup({"hide",})
