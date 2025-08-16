@@ -98,3 +98,25 @@ Set-Alias -Name grep -Value Invoke-RipGrep
 
 function Invoke-Find() { fd.exe -HIi $args }
 Set-Alias -Name find -Value Invoke-FInd
+
+function Restart-Module() { 
+    param(
+        [Parameter(Mandatory=$False, Position=0)]
+        [String]$ModuleName
+    )
+    $CleanedName = $ModuleName
+
+    if ($CleanedName.Contains("/") ) {
+        $CleanedName = $CleanedName.Split("/")[-1]
+    }
+
+    if ($CleanedName.Contains("\") ) {
+        $CleanedName = $CleanedName.Split("\")[-1]
+    }
+
+    if ($CleanedName.EndsWith(".psm1") ) {
+        $CleanedName = $CleanedName.split(".")[0]
+    }
+
+    Remove-Module $CleanedName; Import-Module $CleanedName
+}
