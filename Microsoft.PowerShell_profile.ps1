@@ -34,6 +34,7 @@ Set-Alias -Name celar -Value clear
 Set-Alias -Name claer -Value clear
 Set-Alias -Name clea -Value clear
 Set-Alias -Name celer -Value clear
+Set-Alias -Name c -Value clear
 Set-Alias -Name cls -Value clear
 Set-Alias -Name sl -Value ls
 Set-Alias -Name l -Value ls
