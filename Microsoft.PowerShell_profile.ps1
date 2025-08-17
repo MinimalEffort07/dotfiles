@@ -3,6 +3,7 @@ Import-Module Posh-Git
 
 # Setup Prompt -----------------------------------------------------------------
 $GitPromptSettings.DefaultPromptAbbreviateHomeDirectory = $true
+$GitPromptSettings.DefaultPromptBeforeSuffix.Text = '`n'
 
 # PSReadline Mappings ----------------------------------------------------------
 Set-PSReadLineOption -EditMode Vi
