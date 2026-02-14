@@ -4,9 +4,8 @@
 - Restart 'Explorer' process
 2. Make PowerShell Preview the default terminal in Windows Terminal and set the PowerShell Preview profile to always run as Administrator
 - Pin to taskbar. 
-3. Remap 'Caps Lock' To 'Left Control' using PowerToys
+3. Remap 'Caps Lock' To 'Left Control' using `ctrl2cap` sysinternals tool
 4. Set Firefox as default browser
-5. Set PowerToys to "Always Run As Administrator"
 6. Pin Home directory to 'Quick Access'
 7. Show hidden items in Explorer
 8. Download ps1 from dotfiles repo
@@ -18,7 +17,6 @@
 14. System > Multi-tasking -> unselect "Show snap layouts when i drag a window to the top of my screen"
 15. System > Multi-tasking -> unselect "Show snap layouts when i hover over a winodws maximise button"
 16. System > Multi-tasking -> unselect "Show my snapped winodws when i hover over taskbar apps.."
-17. Get alacritty.toml form dotfiles
 18. Disable the scum that is OneDrive: WinPro: (gpedit.msc > Computer Configuration > Administrative Templates > Windows Components > OnceDrive > Prevent the usageo of OneDrive for file storage > Enable )
 19. Powertoys create shortcut mapping in forefox Alt+Enter == F11 (Alt+Enter to fullscreen)
 20. Create new ssh key and add it to github
@@ -26,6 +24,7 @@
 22. Setup obsidian, enable vim in the editor, enable community plugins.
 23. Install obsidian plugins: git, vim
 24. Setup global .gitconfig
+25. Remove "Learn about this image" desktop icon. `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel` new DWORD, name: `{2cc5ca98-6485-489a-920e-b3e88a6ccce3}` value: `1`
 
 Installed Programs
 1. Firefox
@@ -34,7 +33,6 @@ Installed Programs
 5. Sysinternals Suite
 6. Windbg
 7. Explorer Suite
-8. PowerToys
 9. (Uninstall) Mail and Calendar
 10. (Uninstall) Dolby Access
 11. (Uninstall) Microsoft 365 (Office)

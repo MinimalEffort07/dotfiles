@@ -9,7 +9,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 
 -- Remove trailing whitespace from lines when you save a buffer
 vim.api.nvim_create_autocmd({ "BufWritePre" }, {
-    pattern = { "*.c", "*.h", "*.py" },
+    pattern = { "*.c", "*.h", "*.py", "*.psm1", "*.ps1" },
     callback = function(ev)
         local current_line = vim.api.nvim_win_get_cursor(0)
         vim.cmd('%s/ *$//g')
