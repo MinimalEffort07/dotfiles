@@ -24,58 +24,42 @@ cmp.setup({
 })
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-vim.lsp.config('pyright', { capabilities = capabilities })
-vim.lsp.enable('pyright')
-
 vim.lsp.config('lua_ls', {
-    capabilities = capabilities,
-    on_init = function(client)
-        if client.workspace_folders then
-            local path = client.workspace_folders[1].name
-            if
-                path ~= vim.fn.stdpath('config')
-                and (vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc'))
-            then
-                return
-            end
-        end
-
-        client.config.settings.Lua = vim.tbl_deep_extend('force', client.config.settings.Lua, {
-            runtime = {
-                version = 'LuaJIT',
-                -- Tell the language server how to find Lua modules same way as Neovim
-                -- (see `:h lua-module-load`)
-                path = {
-                    'lua/?.lua',
-                    'lua/?/init.lua',
-                },
-            },
-            -- Make the server aware of Neovim runtime files
-            workspace = {
-                checkThirdParty = false,
-                -- Tells lua_ls where to look for require files
-                library = {
-                    vim.env.VIMRUNTIME,
-                    -- Needed to enable "go to defintion" on the require("*") files above. Otherwise
-                    -- lua_ls won't know where to look for require files.
-                    vim.fn.stdpath("config")
-                }
-            }
-        })
-    end,
     settings = {
-        Lua = {}
-    }
+        Lua = {
+            diagnostics = {
+                globals = { 'vim' },
+            },
+            completion = {
+                displayContext = 1,
+            },
+        },
+    },
 })
+
+
+
 vim.lsp.enable('lua_ls')
+
+vim.lsp.config('pyright', {
+    cmd = {vim.env.USERPROFILE .. '\\.venv\\Scripts\\pyright-langserver.exe', "--stdio"},
+    capabilities = capabilities,
+})
+vim.lsp.enable('pyright')
 
 vim.lsp.config('clangd', { capabilities = capabilities })
 vim.lsp.enable('clangd')
 
-require 'lspconfig'.powershell_es.setup {
-    bundle_path = "~/tools/PowerShellEditorServices",
-}
+vim.lsp.config('typescript-language-server', { capabilities = capabilities })
+vim.lsp.enable('typescript-language-server')
 
+vim.lsp.config("powershell_es", {
+    capabilities = capabilities,
+    bundle_path = "~/tools/PowerShellEditorServices",
+})
+vim.lsp.enable("powershell_es")
+
+vim.lsp.config("neocmake", { capabilities = capabilities})
 vim.lsp.enable("neocmake")
 
 require("fzf-lua").setup({"hide",})

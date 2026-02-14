@@ -119,5 +119,5 @@ function Restart-Module() {
         $CleanedName = $CleanedName.split(".")[0]
     }
 
-    Remove-Module $CleanedName; Import-Module $CleanedName
+    Remove-Module $CleanedName; Import-Module $ModuleName
 }
