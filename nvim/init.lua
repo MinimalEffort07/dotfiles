@@ -11,7 +11,9 @@ vim.cmd("colorscheme tokyonight")
 local cmp = require("cmp")
 cmp.setup({
     window = {
-        completion = cmp.config.window.bordered(),
+        completion = cmp.config.window.bordered({
+          winhighlight = "Normal:CmpPmenu,CursorLine:CmpSel,Search:None",
+        }),
         documentation = cmp.config.window.bordered(),
     },
     mapping = cmp.mapping.preset.insert({}),
@@ -25,6 +27,7 @@ cmp.setup({
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 vim.lsp.config('lua_ls', {
+    capabilities = capabilities,
     settings = {
         Lua = {
             diagnostics = {
@@ -33,13 +36,23 @@ vim.lsp.config('lua_ls', {
             completion = {
                 displayContext = 1,
             },
+            workspace = {
+                checkThirdParty = false,
+                library = vim.tbl_filter(function(path)
+                    return not path:match("after")
+                end, vim.api.nvim_get_runtime_file("", true)),
+            },
         },
     },
 })
-
-
-
 vim.lsp.enable('lua_ls')
+
+
+vim.lsp.config('zls', {
+    cmd = {vim.env.USERPROFILE .. '\\repos\\zls\\zig-out\\bin\\zls.exe'},
+    capabilities = capabilities,
+})
+vim.lsp.enable('zls')
 
 vim.lsp.config('pyright', {
     cmd = {vim.env.USERPROFILE .. '\\.venv\\Scripts\\pyright-langserver.exe', "--stdio"},
