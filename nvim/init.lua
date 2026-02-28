@@ -49,6 +49,14 @@ vim.lsp.enable('lua_ls')
 
 
 vim.lsp.config('zls', {
+    cmd = {vim.env.USERPROFILE .. '\\repos\\zls\\zig-out\\bin\\zls'},
+    capabilities = capabilities,
+})
+vim.lsp.enable('zls')
+
+
+
+vim.lsp.config('zls', {
     cmd = {vim.env.USERPROFILE .. '\\repos\\zls\\zig-out\\bin\\zls.exe'},
     capabilities = capabilities,
 })
