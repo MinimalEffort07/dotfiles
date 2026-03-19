@@ -5,6 +5,7 @@ require('options')
 
 vim.cmd("colorscheme tokyonight")
 
+
 -- nvm-cmp Completion Engine
 -- The language servers know what values are valid after say a object.<potential values> however they don't
 -- display them to the buffer for you, that is what a completion enginer is for like nvim-cmp.
@@ -47,23 +48,22 @@ vim.lsp.config('lua_ls', {
 })
 vim.lsp.enable('lua_ls')
 
+vim.lsp.config('clangd', {
+    -- cmd = {vim.env.USERPROFILE .. '\\repos\\zls\\zig-out\\bin\\zls'},
+    capabilities = capabilities,
+})
+vim.lsp.enable('clangd')
+
 
 vim.lsp.config('zls', {
-    cmd = {vim.env.USERPROFILE .. '\\repos\\zls\\zig-out\\bin\\zls'},
+    -- cmd = {vim.env.USERPROFILE .. '\\repos\\zls\\zig-out\\bin\\zls'},
     capabilities = capabilities,
 })
 vim.lsp.enable('zls')
 
-
-
-vim.lsp.config('zls', {
-    cmd = {vim.env.USERPROFILE .. '\\repos\\zls\\zig-out\\bin\\zls.exe'},
-    capabilities = capabilities,
-})
-vim.lsp.enable('zls')
 
 vim.lsp.config('pyright', {
-    cmd = {vim.env.USERPROFILE .. '\\.venv\\Scripts\\pyright-langserver.exe', "--stdio"},
+    -- cmd = {vim.env.USERPROFILE .. '\\.venv\\Scripts\\pyright-langserver.exe', "--stdio"},
     capabilities = capabilities,
 })
 vim.lsp.enable('pyright')
