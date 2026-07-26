@@ -1,5 +1,3 @@
-
-
 # Prompt
 #
 # vcs_info is a function that (among other things) stores the branch name of the
@@ -66,7 +64,7 @@ alias v="nvim"
 
 # Aliases
 alias zshrc="vim ~/.zshrc"
-alias vimrc="vim ~/.config/nvim/init.vim"
+alias vimrc="vim ~/.config/nvim/init.lua"
 alias gdbinit="vim ~/.gdbinit"
 
 alias sourcezsh="source ~/.zshrc"
@@ -91,6 +89,8 @@ else
     alias ls="ls -1c --color -Fv"
     export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:~/.local/bin
 fi
+
+PATH=$PATH:/home/min/.gem/bin:/mnt/c/windows/system32/
 
 alias l="ls"
 alias ll="ls -l"
@@ -143,3 +143,22 @@ compinit
 #  End of lines added by compinstall
 
 alias b="rm -rf build; scan-build --use-analyzer=$(which clang) cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=1; scan-build --use-analyzer=$(which clang) cmake --build build -j16"
+
+# Where to save history
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=20000
+
+# Share history across multiple sessions instantly
+setopt INC_APPEND_HISTORY      # append commands to history immediately
+setopt SHARE_HISTORY           # share history across sessions
+setopt HIST_IGNORE_DUPS        # don’t record duplicate commands
+setopt HIST_IGNORE_SPACE       # don’t record commands starting with space
+setopt HIST_VERIFY             # don’t run command right away when recalled
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# opencode
+export PATH=/home/min/.opencode/bin:$PATH
