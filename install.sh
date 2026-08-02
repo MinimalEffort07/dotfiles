@@ -16,6 +16,14 @@ RES="\x1b\x5b0m"
 # \x08 is BS 'Backspace' character. Used to remove ^C from output.
 trap 'echo -e "\x08\x08Signal ${RED}SIGINT${RES} Caught.. Exiting" && exit 1' SIGINT
 
+set -u
+
+# Defaults for variables that are only set on some platforms or by flags.
+# Required because of set -u.
+OPTIONS=""
+ARM=""
+HEADLESS=0
+
 function print_info() {
     echo -e "[${CYAN}INFO${RES}] $@"
 }
@@ -63,7 +71,6 @@ function dotfiles_bannner() {
 
 function clone_repos() {
 
-    arr=("$@")
     for repo_url in "$@"; do
         # We want to obtain repo name which will always be .../<name_here>.git
         # since names can't have forward slashes in them we can split the URL
@@ -78,7 +85,7 @@ function clone_repos() {
             print_warn "$(highlight_text ${repo_name}) already exists. $(highlight_text Skipping..)"
         else
             print_info "Attempting to clone ${repo_name} into /opt/${repo_name}"
-            if sudo git clone -q $repo_url "/opt/${repo_name}"; then
+            if sudo git clone -q "$repo_url" "/opt/${repo_name}"; then
                 print_info "Successfully cloned ${repo_name}"
 
                 print_info "Attempting to chown /opt/${repo_name} to $USER ownership"
@@ -97,7 +104,6 @@ function clone_repos() {
 }
 
 function create_syms() {
-    arr=("$@")
 
     for sym in "$@"; do
         symarr=($sym)
@@ -105,20 +111,22 @@ function create_syms() {
         print_info "Attempting to create symlink,"\
             "$(style_path ${symarr[1]}) $(style_path '->') $(style_path ${symarr[0]})"
 
-        if sudo [ -f "${symarr[1]}" ] && sudo [ ! -L "${symarr[1]}" ]; then
+        if sudo [ -e "${symarr[1]}" ] && sudo [ ! -L "${symarr[1]}" ]; then
 
             print_warn "....$(style_path ${symarr[1]}) already exists but is"\
                        "not a symlink. Attempting to back it up now"
 
-            # Attempting backup of non symlink configuration files
-            if mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
+            # Numbered backups so repeated runs never overwrite an earlier backup
+            if ${MV} --backup=numbered "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
                 print_info "....$(style_path ${symarr[1]}) Successfully backed up to"\
                            "$(style_path ${symarr[1]}.dotfiles.bak)"
-            elif sudo mv "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
+            elif sudo ${MV} --backup=numbered "${symarr[1]}" "${symarr[1]}.dotfiles.bak" &>/dev/null; then
                 print_warn "....$(style_path ${symarr[1]}) Successfully backed up to"\
                     "$(style_path ${symarr[1]}.dotfiles.bak). $(highlight_text Required sudo)"
             else
-                print_warn "....Unable to backup $(syle_path ${symarr[1]})"
+                # Never delete a file that could not be backed up
+                print_err "....Unable to backup $(style_path ${symarr[1]}). $(emphasize_text Aborting..)"
+                exit 1
             fi
         fi
 
@@ -131,7 +139,8 @@ function create_syms() {
                 print_warn "....Successfully removed "\
                     "$(style_path ${symarr[1]}). $(highlight_text Required sudo)"
             else
-                print_err "....Failed to removed $(style_path ${symarr[1]})"
+                print_err "....Failed to remove $(style_path ${symarr[1]}). $(emphasize_text Aborting..)"
+                exit 1
             fi
         fi
 
@@ -148,9 +157,8 @@ function create_syms() {
 
 # Given a list of directories create them.
 function create_dirs() {
-    arr=("$@")
 
-    for dir in ${arr[@]}; do
+    for dir in "$@"; do
 
         if sudo test -d "${dir}"; then
             print_warn "$(style_path ${dir}) already exists. $(highlight_text Skipping..)"
@@ -193,15 +201,14 @@ function check_installed() {
 
 # Given a list of dependencies, install them using: PCKMAN, OPTIONS
 function install_deps() {
-    arr=("$@")
 
-    for dep in ${arr[@]}; do
+    for dep in "$@"; do
         if check_installed "${dep}"; then
             print_info "$(highlight_text ${dep}) is already installed. $(highlight_text Skipping..)"
             continue
         fi
         print_info "Attempting to install ${dep}"
-        if $PCKMAN install $OPTIONS ${dep} &>/dev/null; then
+        if $PCKMAN install $OPTIONS "${dep}" &>/dev/null; then
             print_info "Successfully installed $(highlight_text ${dep})"
         else
             if check_installed "${dep}"; then
@@ -211,15 +218,15 @@ function install_deps() {
             else
                 print_err "Failed to install $(highlight_text ${dep}), check "\
                           "the output. Exiting.."
+                exit 1
             fi
         fi
     done
 }
 
 function uninstall_conflicts() {
-    arr=("$@")
 
-    for conflict in ${arr[@]}; do
+    for conflict in "$@"; do
         if ! check_installed "${conflict}"; then
             print_info "$(highlight_text ${conflict}) is not installed. $(highlight_text Skipping..)"
             continue
@@ -227,7 +234,7 @@ function uninstall_conflicts() {
 
         print_info "Attempting to uninstall ${conflict}"
 
-        if $PCKMAN remove ${conflict} -y &>/dev/null; then
+        if $PCKMAN remove $OPTIONS "${conflict}" &>/dev/null; then
             print_info "Successfully removed $(highlight_text ${conflict})"
         else
             if check_installed "${conflict}"; then
@@ -240,7 +247,105 @@ function uninstall_conflicts() {
     done
 }
 
+# Point the given command names at nvim using the alternatives system
+function setup_editor_alternatives() {
+
+    local nvim_path="$(which nvim)"
+
+    if [ -z "${nvim_path}" ]; then
+        print_warn "nvim not found, unable to set up editor alternatives"
+        return 1
+    fi
+
+    for name in "$@"; do
+        print_info "Attempting to point $(highlight_text ${name}) at $(style_path ${nvim_path})"
+
+        if sudo update-alternatives --install "/usr/bin/${name}" "${name}" "${nvim_path}" 60 &>/dev/null &&
+           sudo update-alternatives --set "${name}" "${nvim_path}" &>/dev/null; then
+            print_info "....Successfully pointed $(highlight_text ${name}) at nvim"
+        else
+            print_warn "....Failed to point $(highlight_text ${name}) at nvim"
+        fi
+    done
+}
+
+# Copy the array named $1 into the array named $2. Namerefs (local -n) need
+# bash 4.3+ but macOS ships bash 3.2, so indirection is done with eval. The
+# ${...+...} guard keeps set -u happy when the source array is empty.
+function copy_array() {
+    eval "$2=(\${$1[@]+\"\${$1[@]}\"})"
+}
+
+# Dispatch a step over the platform agnostic array and the array matching the
+# current OS. Takes a verb ("Installing"), a noun ("Dependencies"), a function
+# name and the NAMES of the mac only, linux only and agnostic arrays.
+function run_platform_step() {
+
+    local verb="$1"
+    local noun="$2"
+    local func="$3"
+    local mac_arr linux_arr agnostic_arr
+    copy_array "$4" mac_arr
+    copy_array "$5" linux_arr
+    copy_array "$6" agnostic_arr
+
+    if [ ${#agnostic_arr[@]} -gt 0 ]; then
+        print_info "$(emphasize_text ${verb} Platform Agnostic ${noun})"
+        "${func}" "${agnostic_arr[@]}"
+    fi
+
+    if [ "$OS" = "MacOS" ] && [ ${#mac_arr[@]} -gt 0 ]; then
+        print_info "$(emphasize_text ${verb} Mac Only ${noun})"
+        "${func}" "${mac_arr[@]}"
+    elif [ "$OS" = "Linux" ] && [ ${#linux_arr[@]} -gt 0 ]; then
+        print_info "$(emphasize_text ${verb} Linux Only ${noun})"
+        "${func}" "${linux_arr[@]}"
+    fi
+}
+
+# Dispatch a step over a linux desktop only array, skipping it entirely when
+# running with --headless. Takes a verb, a noun, a function name and the NAME
+# of the desktop only array.
+function run_desktop_step() {
+
+    local verb="$1"
+    local noun="$2"
+    local func="$3"
+    local desktop_arr
+    copy_array "$4" desktop_arr
+
+    if [ "$OS" != "Linux" ] || [ ${#desktop_arr[@]} -eq 0 ]; then
+        return 0
+    fi
+
+    if [ "${HEADLESS}" -eq 1 ]; then
+        print_info "Skipping (headless) $(emphasize_text Linux Desktop Only ${noun})"
+    else
+        print_info "$(emphasize_text ${verb} Linux Desktop Only ${noun})"
+        "${func}" "${desktop_arr[@]}"
+    fi
+}
+
 function main() {
+
+    ###########################################################################
+    #                                                                         #
+    #                        Parsing Script Arguments                         #
+    #                                                                         #
+    ###########################################################################
+
+    for arg in "$@"; do
+        case "${arg}" in
+            --headless)
+                HEADLESS=1
+                ;;
+            *)
+                print_err "Unknown argument: $(highlight_text ${arg})"
+                echo "Usage: $0 [--headless]"
+                exit 1
+                ;;
+        esac
+    done
 
     dotfiles_bannner
 
@@ -280,10 +385,10 @@ function main() {
         print_info "Homebrew not installed, attempting to install now"
         local brewurl="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
         if /bin/bash -c "$(curl -fsSL $brewurl)"; then
+            print_info "Successfully installed Homebrew"
+        else
             print_err "Failed to install Homebrew.. Exiting"
             exit 1
-        else
-            print_info "Successfully installed Homebrew"
         fi
     fi
 
@@ -294,22 +399,13 @@ function main() {
     ###########################################################################
 
     print_section "Uninstalling Conflicts"
-    local conflicts_mac_only=()
+
+    local conflicts_mac_only=("vim")
     local conflicts_linux_only=()
-    local conflicts_agnostic=("vim")
+    local conflicts_agnostic=()
 
-    if test -n "$conflicts_agnostic"; then
-        print_info "$(emphasize_text Uninstalling Platform Agnostic Conflicts)"
-        uninstall_conflicts ${conflicts_agnostic[@]}
-    fi
-
-    if [ "$OS" = "MacOS" ] && [ -n "$conflicts_mac_only" ]; then
-        print_info "$(emphasize_text Uninstalling Mac Only Conflicts)"
-        uninstall_conflicts ${conflicts_mac_only[@]}
-    elif [ "$OS" = "Linux" ] && [ -n "$conflicts_linux_only" ]; then
-        print_info "$(emphasize_text Uninstalling Linux Only Conflicts)"
-        uninstall_conflicts ${conflicts_linux_only[@]}
-    fi
+    run_platform_step "Uninstalling" "Conflicts" uninstall_conflicts \
+        conflicts_mac_only conflicts_linux_only conflicts_agnostic
 
     ###########################################################################
     #                                                                         #
@@ -319,22 +415,15 @@ function main() {
 
     print_section "Installing Dependencies"
 
-    local deps_mac_only=("coreutils" "binutils" "gnu-sed")
-    local deps_linux_only=("i3" "rofi")
-    local deps_agnostic=("curl" "zsh" "neovim" "pip" "gpg" "tar" "go")
+    local deps_mac_only=("coreutils" "binutils" "gnu-sed" "go" "python")
+    local deps_linux_only=("python3-pip" "golang")
+    local deps_linux_desktop=("i3" "rofi")
+    local deps_agnostic=("curl" "zsh" "neovim" "gpg" "tar")
 
-    if test -n "$deps_agnostic"; then
-        print_info "$(emphasize_text Installing Platform Agnostic Dependencies)"
-        install_deps ${deps_agnostic[@]}
-    fi
+    run_platform_step "Installing" "Dependencies" install_deps \
+        deps_mac_only deps_linux_only deps_agnostic
 
-    if [ "$OS" = "MacOS" ] && [ -n "$deps_mac_only" ]; then
-        print_info "$(emphasize_text Installing Mac Only Dependencies)"
-        install_deps ${deps_mac_only[@]}
-    elif [ "$OS" = "Linux" ] && [ -n "$deps_linux_only" ]; then
-        print_info "$(emphasize_text Installing Linux Only Dependencies)"
-        install_deps ${deps_linux_only[@]}
-    fi
+    run_desktop_step "Installing" "Dependencies" install_deps deps_linux_desktop
 
     ###########################################################################
     #                                                                         #
@@ -344,35 +433,23 @@ function main() {
 
     # Installing Github Repos to be installed in /opt
     print_section "Cloning Repositories"
+
     local repos_mac_only=()
     local repos_arm_only=()
     local repos_intel_only=()
     local repos_linux_only=()
     local repos_agnostic=()
 
-    if test -n "$repos_agnostic"; then
-        print_info "$(emphasize_text Cloning Platform Agnostic Repositories)"
-        clone_repos "${repos_agnostic[@]}"
-    fi
+    run_platform_step "Cloning" "Repositories" clone_repos \
+        repos_mac_only repos_linux_only repos_agnostic
 
-    if test "$OS" = "MacOS"; then
-        if test -n "$repos_mac_only"; then
-            print_info "$(emphasize_text Cloning Mac Only Repositories)"
-            clone_repos "${repos_mac_only[@]}"
-        fi
-
-        if [ -n "$ARM" ] && [ -n "$repos_arm_only" ]; then
+    if [ "$OS" = "MacOS" ]; then
+        if [ -n "$ARM" ] && [ ${#repos_arm_only[@]} -gt 0 ]; then
             print_info "$(emphasize_text Cloning ARM Mac Only Repositories)"
             clone_repos "${repos_arm_only[@]}"
-        elif [ -z "$ARM" ] && [ -n "$repos_intel_only" ]; then
+        elif [ -z "$ARM" ] && [ ${#repos_intel_only[@]} -gt 0 ]; then
             print_info "$(emphasize_text Cloning Intel Mac Only Repositories)"
             clone_repos "${repos_intel_only[@]}"
-        fi
-
-    else
-        if test -n "$repos_linux_only"; then
-            print_info "$(emphasize_text Cloning Linux Only Repositories)"
-            clone_repos "${repos_linux_only[@]}"
         fi
     fi
 
@@ -404,25 +481,17 @@ function main() {
     print_section "Creating Directories"
 
     local dirs_mac_only=()
-    local dirs_linux_only=("${HOME}/.config/i3"
-                           "/etc/i3"
-                           "${HOME}/.config/rofi")
+    local dirs_linux_only=()
+    local dirs_linux_desktop=("${HOME}/.config/i3"
+                              "/etc/i3"
+                              "${HOME}/.config/rofi")
 
-    local dirs_agnostic=("${HOME}/projects/minimaleffort"
-                         "${HOME}/projects/private-git")
+    local dirs_agnostic=("${HOME}/projects/minimaleffort")
 
-    if test -n "$dirs_agnostic"; then
-        print_info "$(emphasize_text Creating Platform Agnostic Directories)"
-        create_dirs ${dirs_agnostic[@]}
-    fi
+    run_platform_step "Creating" "Directories" create_dirs \
+        dirs_mac_only dirs_linux_only dirs_agnostic
 
-    if [ "$OS" = "MacOS" ] && [ -n "$dirs_mac_only" ]; then
-        print_info "$(emphasize_text Creating Mac Only Directories)"
-        create_dirs "${dirs_mac_only[@]}"
-    elif [ "$OS" = "Linux" ] && [ -n "$dirs_linux_only" ]; then
-        print_info "$(emphasize_text Creating Linux Only Directories)"
-        create_dirs "${dirs_linux_only[@]}"
-    fi
+    run_desktop_step "Creating" "Directories" create_dirs dirs_linux_desktop
 
     ###########################################################################
     #                                                                         #
@@ -432,34 +501,61 @@ function main() {
 
     print_section "Creating Symlinks"
 
+    # Each entry is a space separated "source destination" pair, split inside
+    # create_syms. Double quotes here prevent premature splitting.
     local syms_mac_only=("/usr/local/bin/nvim /usr/local/bin/vim")
-    local syms_linux_only=("${DOTFILES}/nvim /root/.config/nvim"
-                           "${DOTFILES}/nvim ${HOME}/.config/"
-                           "${DOTFILES}/i3_config ${HOME}/.config/i3/config"
-                           "${DOTFILES}/i3_config /etc/i3/config"
-                           "${DOTFILES}/config.rasi ${HOME}/.config/rofi/config.rasi"
-                           "${DOTFILES}/xmodmapmappings ${HOME}/.config/i3/xmodmapmappings"
-                           "/usr/bin/nvim /usr/bin/vim")
+    local syms_linux_only=("${DOTFILES}/nvim ${HOME}/.config/nvim")
+    local syms_linux_desktop=("${DOTFILES}/i3_config ${HOME}/.config/i3/config"
+                              "${DOTFILES}/i3_config /etc/i3/config"
+                              "${DOTFILES}/config.rasi ${HOME}/.config/rofi/config.rasi"
+                              "${DOTFILES}/xmodmapmappings ${HOME}/.config/i3/xmodmapmappings")
 
     local syms_agnostic=("${DOTFILES}/zshrc ${HOME}/.zshrc"
                          "${DOTFILES}/gdbinit ${HOME}/.gdbinit")
 
+    run_platform_step "Creating" "Symlinks" create_syms \
+        syms_mac_only syms_linux_only syms_agnostic
 
-    # Double quotes needed to prevent splitting of source and dest parts of string
-    if test -n "$syms_agnostic"; then
-        print_info "$(emphasize_text Creating Platform Agnostic Symlinks)"
-        create_syms "${syms_agnostic[@]}"
-    fi
-
-    if [ "$OS" = "MacOS" ] && [ -n "$syms_mac_only" ]; then
-        print_info "$(emphasize_text Creating Mac Only Symlinks)"
-        create_syms "${syms_mac_only[@]}"
-    elif [ "$OS" = "Linux" ] && [ -n "$syms_linux_only" ]; then
-        print_info "$(emphasize_text Creating Linux Only Symlinks)"
-        create_syms "${syms_linux_only[@]}"
-    fi
+    run_desktop_step "Creating" "Symlinks" create_syms syms_linux_desktop
 
     print_section "Executing Custom Commands"
+
+    ###########################################################################
+    #                                                                         #
+    #                     Setting Up Editor Alternatives                      #
+    #                                                                         #
+    ###########################################################################
+
+    if [ "$OS" = "Linux" ]; then
+        print_info "$(emphasize_text Pointing v, vi and vim at nvim via update-alternatives)"
+        setup_editor_alternatives v vi vim
+    fi
+
+    ###########################################################################
+    #                                                                         #
+    #                    Copying Nvim Config For Root User                    #
+    #                                                                         #
+    ###########################################################################
+
+    if [ "$OS" = "Linux" ]; then
+        print_info "$(emphasize_text Copying nvim config to $(style_path /root/.config/nvim))"
+
+        if ! sudo mkdir -p /root/.config &>/dev/null; then
+            print_warn "Failed to create $(style_path /root/.config), skipping root nvim config"
+        elif which rsync &>/dev/null; then
+            if sudo rsync -a --delete "${DOTFILES}/nvim/" /root/.config/nvim/ &>/dev/null; then
+                print_info "Successfully copied nvim config for root"
+            else
+                print_warn "Failed to copy nvim config for root"
+            fi
+        else
+            if sudo cp -rT "${DOTFILES}/nvim" /root/.config/nvim &>/dev/null; then
+                print_info "Successfully copied nvim config for root. $(highlight_text rsync unavailable, used cp)"
+            else
+                print_warn "Failed to copy nvim config for root"
+            fi
+        fi
+    fi
 
     ###########################################################################
     #                                                                         #
@@ -474,115 +570,29 @@ function main() {
 
     ###########################################################################
     #                                                                         #
-    #                    Installing Vim Plugin Manager                        #
-    #                                                                         #
-    ###########################################################################
-
-    #if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
-    #    print_info "$(highlight_text Vim-Plug) already installed. $(highlight_text Skipping..)"
-    #else
-    #    sh -c 'curl -fLo "${XDG_DATA_HOME:-$HOME/.local/share}"/nvim/site/autoload/plug.vim --create-dirs \
-    #        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim' &>/dev/null
-
-    #    if [ -f ~/.local/share/nvim/site/autoload/plug.vim ]; then
-    #        print_info "Successfully installed $(highlight_text Vim-Plug)"
-    #    else
-    #        print_err "Failed to install $(highlight_text Vim-Plug)"
-    #        exit 1
-    #    fi
-    #fi
-
-    ###########################################################################
-    #                                                                         #
-    #                 Setting Up Encrypted Git Config File                    #
-    #                                                                         #
-    ###########################################################################
-
-    print_info "$(emphasize_text Setting up .gitconfigs)"
-    print_info "Enter Password To Decrypt gitconfig.enc"
-    gpg --output gitconfig.tar -d gitconfig.enc &>/dev/null
-    if [ $? -ne 0 ]; then
-        print_err "Failed To Decrypt gitconfig.enc File"
-        exit 1
-    fi
-
-    tar xvf gitconfig.tar &>/dev/null
-    if [ $? -ne 0 ]; then
-        print_err "Failed To Decompress gitconfig.tar File"
-        exit 1
-    fi
-
-    rm -rf gitconfig.tar
-    if [ $? -ne 0 ]; then
-        print_warn "Failed To Remove Decrypted gitconfig.tar. You May Want To Manually Remove It"
-    fi
-
-    print_info "Copied $(style_path gitconfig/.global-gitconfig) to $(style_path ${HOME}/.gitconfig)"
-    ${MV} --backup=numbered gitconfig/.global-gitconfig ${HOME}/.gitconfig
-
-    print_info "Copied $(style_path gitconfig/.private-gitconfig) to $(style_path ${HOME}/projects/private-git/.gitconfig)"
-    ${MV} --backup=numbered  gitconfig/.private-gitconfig ${HOME}/projects/private-git/.gitconfig &>/dev/null
-
-    print_info "Copied $(style_path gitconfig/.minimaleffort-gitconfig) to $(style_path ${HOME}/projects/minimaleffort/.gitconfig)"
-    ${MV} --backup=numbered  gitconfig/.minimaleffort-gitconfig ${HOME}/projects/minimaleffort/.gitconfig &>/dev/null
-
-    print_info "Copied $(style_path gitconfig/private-git) to $(style_path ${HOME}/.ssh/private-git)"
-    ${MV} --backup=numbered gitconfig/private-git ${HOME}/.ssh/ &>/dev/null
-
-    print_info "Copied $(style_path gitconfig/minimaleffort) to $(style_path ${HOME}/.ssh/minimaleffort)"
-    ${MV} --backup=numbered gitconfig/minimaleffort ${HOME}/.ssh/ &>/dev/null
-
-    rm -rf gitconfig
-    if [ $? -ne 0 ]; then
-        print_warn "Failed To Remove Decrypted And Decompressed gitconfig/. You May Want To Manually Remove It"
-    fi
-
-    print_info "$(emphasize_text Starting ssh-agent And Adding Keys)"
-    eval $(ssh-agent -s) &>/dev/null
-
-    print_info "Adding $(style_path ~/.ssh/minimaleffort/minimaleffort.key) to ssh-agent"
-    ssh-add ~/.ssh/minimaleffort/minimaleffort.key &>/dev/null
-
-    print_info "Adding $(style_path ~/.ssh/private-git/private-git.key) to ssh-agent"
-    ssh-add ~/.ssh/private-git/private-git.key &>/dev/null
-
-    ###########################################################################
-    #                                                                         #
-    #                      Installing Neovim Plugins                          #
-    #                                                                         #
-    ###########################################################################
-
-    #print_info "$(emphasize_text Installing Neovim Plugins)"
-    #nvim --headless +PlugInstall +q +q &>/dev/null
-    #if [ $? -ne 0 ]; then
-    #    print_warn "Failed To Install $(highlight_text Neovim Plugins)"
-    #else
-    #    print_info "Installed $(highlight_text Neovim Plugins)"
-    #fi
-
-    ###########################################################################
-    #                                                                         #
-    #          Converting DOTFILES repo To Use SSH Instead Of HTTPS           #
-    #                                                                         #
-    ###########################################################################
-
-    print_info "$(emphasize_text Switching dotfiles repo from https to ssh)"
-    git config --local remote.origin.url git@github.com:MinimalEffort07/dotfiles.git
-    print_info "Edited dotfile repo's $(highlight_text gitconfig)."
-
-    ###########################################################################
-    #                                                                         #
     #                     Setting Up Screen Resolution                        #
     #                                                                         #
     ###########################################################################
 
-    if [ ! -f ~/.xrandr_preferences.sh ]; then
+    if [ "$OS" != "Linux" ]; then
+        : # xrandr preferences are a linux desktop concern only
+    elif [ "${HEADLESS}" -eq 1 ]; then
+        print_info "Skipping (headless) $(emphasize_text xrandr preferences)"
+    elif [ ! -f ~/.xrandr_preferences.sh ]; then
         print_info "$(emphasize_text Creating xrandr preferences)"
 
-        echo -e "#!/bin/zsh\nxrandr --output ${xrandr_output} --auto" > ~/.xrandr_preferences.sh
+        xrandr_output="$(xrandr --query 2>/dev/null | awk '/ connected/ {print $1; exit}')"
+        if [ -n "${xrandr_output}" ]; then
+            echo -e "#!/bin/zsh\nxrandr --output ${xrandr_output} --auto" > ~/.xrandr_preferences.sh
+        else
+            print_warn "Failed To Detect Primary $(highlight_text xrandr) Output. Falling Back To $(highlight_text xrandr --auto)"
+            echo -e "#!/bin/zsh\nxrandr --auto" > ~/.xrandr_preferences.sh
+        fi
         print_info "Created $(style_path ~/.xrandr_preferences) to be run at login"
         chmod +x ~/.xrandr_preferences.sh
-        ~/.xrandr_preferences.sh
+        if ! ~/.xrandr_preferences.sh; then
+            print_warn "Failed to apply $(highlight_text xrandr) preferences"
+        fi
     fi
 
     ###########################################################################
@@ -591,10 +601,19 @@ function main() {
     #                                                                         #
     ###########################################################################
 
-    print_info "$(emphasize_text Changing Caps_Lock to Control)"
-    if grep XKBOPTIONS=\"\" /etc/default/keyboard &>/dev/null; then
-        sudo sed -i s/XKBOPTIONS=\"/XKBOPTIONS=\"ctrl:nocaps/g /etc/default/keyboard
-        print_info "Edited $(style_path /etc/default/keyboard)'s XKBOPTIONS and added option $(highlight_text ctrl:nocaps), restart to take effect"
+    if [ "$OS" != "Linux" ]; then
+        : # /etc/default/keyboard is a linux desktop concern only
+    elif [ "${HEADLESS}" -eq 1 ]; then
+        print_info "Skipping (headless) $(emphasize_text Caps_Lock remap)"
+    else
+        print_info "$(emphasize_text Changing Caps_Lock to Control)"
+        if grep XKBOPTIONS=\"\" /etc/default/keyboard &>/dev/null; then
+            if sudo sed -i s/XKBOPTIONS=\"/XKBOPTIONS=\"ctrl:nocaps/g /etc/default/keyboard; then
+                print_info "Edited $(style_path /etc/default/keyboard)'s XKBOPTIONS and added option $(highlight_text ctrl:nocaps), restart to take effect"
+            else
+                print_warn "Failed to edit $(style_path /etc/default/keyboard)'s XKBOPTIONS"
+            fi
+        fi
     fi
 
     ###########################################################################
@@ -602,9 +621,15 @@ function main() {
     #                     Changing Default Shell To Zsh                       #
     #                                                                         #
     ###########################################################################
+
     print_info "$(emphasize_text Changing Default Shell To Zsh)"
-    chsh -s $(which zsh)
+    if chsh -s "$(which zsh)"; then
+        print_info "Successfully changed default shell to $(highlight_text zsh)"
+    else
+        print_err "Failed to change default shell to $(highlight_text zsh). Aborting"
+        exit 1
+    fi
 
 }
 
-main
+main "$@"

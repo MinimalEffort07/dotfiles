@@ -58,10 +58,6 @@ export EDITOR=nvim
 export DOTFILES="~/projects/minimaleffort/dotfiles"
 export GEM_HOME="$HOME/.gem"
 
-alias vim="nvim"
-alias vi="nvim"
-alias v="nvim"
-
 # Aliases
 alias zshrc="vim ~/.zshrc"
 alias vimrc="vim ~/.config/nvim/init.lua"
@@ -112,9 +108,6 @@ alias gd="git diff"
 alias p="python3"
 alias ctf='docker start ctf && docker attach --detach-keys="ctrl-@" ctf'
 
-alias vim="nvim"
-alias vi="nvim"
-alias v="nvim"
 alias b="rm compile_commands; pushd kern/compile/ASST3; bmake clean -j16; rm compile_commands.json; bmake depend -j16; bear -- bmake -j16; bmake install -j16; popd; ln -s kern/compile/ASST3/compile_commands.json ./compile_commands.json"
 bindkey -v
 bindkey ^R history-incremental-search-backward
@@ -142,6 +135,11 @@ autoload -Uz compinit
 compinit
 #  End of lines added by compinstall
 
+# Herdr completions. Kept in a separate file because it is huge. Must come
+# after compinit (it calls compdef). ${~DOTFILES} forces tilde expansion
+# since DOTFILES contains a literal '~'.
+[ -f ${~DOTFILES}/herdr-zsh-completion.sh ] && source ${~DOTFILES}/herdr-zsh-completion.sh
+
 alias b="rm -rf build; scan-build --use-analyzer=$(which clang) cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=1; scan-build --use-analyzer=$(which clang) cmake --build build -j16"
 
 # Where to save history
@@ -162,3 +160,6 @@ export NVM_DIR="$HOME/.nvm"
 
 # opencode
 export PATH=/home/min/.opencode/bin:$PATH
+
+# Pi
+export PATH="/home/min/.nvm/versions/node/v20.20.2/bin:$PATH"

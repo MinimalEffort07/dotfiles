@@ -19,57 +19,69 @@ directory to set the `DOTFILES` environment variable):
 ```bash
 ./install.sh
 ```
-You will be prompted for your password to decrypt `gitconfig.enc` during the
-git configuration step.
 
-## Overview
+On headless machines (WSL2, servers), skip the desktop-only pieces (i3, rofi,
+their configs, xrandr, the caps-lock remap):
+```bash
+./install.sh --headless
+```
 
-The install script performs the following steps, in order:
+## What install.sh Sets Up
 
-1. **Determine OS** — Selects the package manager: `brew` on MacOS, `sudo apt`
-   on Linux. On MacOS, Homebrew is installed first if it isn't already
-   present.
-2. **Uninstall conflicts** — Removes packages that conflict with the ones
-   being installed. Currently: `vim` (replaced by neovim).
-3. **Install dependencies**
-   - All platforms: `curl`, `zsh`, `neovim`, `pip`, `gpg`, `tar`, `go`
-   - MacOS only: `coreutils`, `binutils`, `gnu-sed`
-   - Linux only: `i3`, `rofi`
-4. **Clone repositories** — Clones any configured GitHub repos into `/opt`
-   and chowns them to the current user (none configured at the moment).
-5. **Set `DOTFILES` environment variable** — Rewrites the `DOTFILES=` line in
-   `zshrc` to point at the repository's location (a `zshrc.dotfiles.bak`
-   backup is created).
-6. **Create directories**
-   - All platforms: `~/projects/minimaleffort`, `~/projects/private-git`
-   - Linux only: `~/.config/i3`, `/etc/i3`, `~/.config/rofi`
-7. **Create symlinks** — Existing non-symlink files are backed up to
-   `<file>.dotfiles.bak` before being replaced.
-   - All platforms: `~/.zshrc` and `~/.gdbinit` point into the repo
-   - MacOS only: `/usr/local/bin/vim` -> `/usr/local/bin/nvim`
-   - Linux only: neovim config (for the user and root), i3 config (user and
-     `/etc/i3/config`), rofi config, xmodmap mappings, and
-     `/usr/bin/vim` -> `/usr/bin/nvim`
-8. **Create local config script** — Creates an empty executable
-   `~/.dotfiles_local_config` for machine-specific configuration (sourced by
-   the zshrc).
-9. **Set up git configs** — Decrypts `gitconfig.enc` with gpg (password
-   prompt), extracts it, and installs:
-   - `~/.gitconfig` (global config)
-   - `~/projects/private-git/.gitconfig` and
-     `~/projects/minimaleffort/.gitconfig` (per-directory identities)
-   - SSH keys into `~/.ssh/private-git` and `~/.ssh/minimaleffort`, which are
-     then added to a freshly started ssh-agent
-10. **Switch remote to SSH** — Points this repo's `origin` at the SSH URL
-    instead of HTTPS.
-11. **Set up screen resolution** — Creates `~/.xrandr_preferences.sh` (run at
-    login) if it doesn't already exist.
-12. **Remap Caps_Lock to Control** — Adds `ctrl:nocaps` to `XKBOPTIONS` in
-    `/etc/default/keyboard` (requires a restart to take effect).
-13. **Change default shell to zsh** — Via `chsh`.
+### Packages
+Installed via `brew` on MacOS and `apt` on Linux:
 
-Note: installing the vim-plug plugin manager and neovim plugins is currently
-disabled in the script.
+- Everywhere: `curl`, `zsh`, `neovim`, `gpg`, `tar`
+- Linux: `python3-pip`, `golang`, plus `i3` and `rofi` on desktops
+- MacOS: `coreutils`, `binutils`, `gnu-sed`, `go`, `python`
+
+On MacOS, Homebrew is installed first if missing, and the conflicting `vim`
+package is uninstalled. On Linux vim is left installed (see editor
+alternatives below).
+
+### Symlinks
+Config files are symlinked into the repo, so edits here take effect
+immediately:
+
+- All platforms: `~/.zshrc`, `~/.gdbinit`
+- MacOS: `/usr/local/bin/vim` -> `nvim`
+- Linux: user nvim config (`~/.config/nvim`), i3 config (user and
+  `/etc/i3/config`), rofi config, xmodmap mappings
+
+### Editor alternatives (Linux)
+`v`, `vi`, and `vim` are registered with `update-alternatives`, all pointing
+at nvim and pinned with `--set` (manual mode), so nvim wins even though vim
+stays installed.
+
+### Root's nvim config (Linux)
+Copied (rsync, root-owned) into `/root/.config/nvim` rather than symlinked,
+so root's editor doesn't execute user-writable config.
+
+### Misc
+- Creates `~/projects/minimaleffort`
+- Creates an empty executable `~/.dotfiles_local_config` for machine-local
+  shell config (sourced by the zshrc)
+- Rewrites the `DOTFILES=` line in `zshrc` to point at the repo's location
+- Changes the default shell to zsh via `chsh`
+- Remaps caps-lock to Control via `/etc/default/keyboard` (Linux desktop,
+  needs a restart to take effect)
+- Generates `~/.xrandr_preferences.sh` for the detected primary display
+  (Linux desktop)
+
+## Destructive Behavior / Safety
+- Existing real config files at symlink destinations are backed up with
+  numbered backups (`file.dotfiles.bak`, `file.dotfiles.bak.~1~`, ...) before
+  being replaced — re-runs never overwrite an earlier backup. If a file
+  cannot be backed up, the script aborts rather than deleting it.
+- Essential steps (package installs, symlinks, directories, shell change)
+  abort the script on failure; cosmetic steps (editor alternatives, root nvim
+  copy, xrandr, caps-lock) warn and continue.
+- The script is safe to re-run; already-installed packages and existing
+  symlinks/directories are skipped or cleanly replaced.
+
+## No Longer Handled
+Git identity/SSH key setup was removed — the script no longer decrypts a
+gitconfig bundle; set up git config and SSH keys manually per machine.
 
 ## Notes
 
