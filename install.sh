@@ -961,7 +961,7 @@ function main() {
     # "package:command" where the installed binary is not named after the
     # package, see check_installed
     local deps_mac_only=("coreutils" "binutils" "gnu-sed" "go" "python")
-    local deps_linux_only=("python3-pip:pip3" "golang:go")
+    local deps_linux_only=("uv" "golang:go")
     local deps_linux_desktop=("i3" "rofi")
     local deps_agnostic=("curl" "zsh" "neovim:nvim" "gpg" "tar")
 
