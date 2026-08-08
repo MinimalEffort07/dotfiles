@@ -34,6 +34,22 @@ GIT_EMAIL="90430937+MinimalEffort07@users.noreply.github.com"
 # and back again on clean.
 GIT_REMOTE="origin"
 
+# The virtual environment the python language servers are installed into. Kept
+# out of the system python so that a distro upgrade cannot take them with it,
+# and shared rather than per project so every checkout does not need its own
+# copy of pyright.
+VENV="${HOME}/.venv"
+
+# The language servers configured in nvim/init.lua that are installable from
+# PyPI, written "package:command" for the cases where the two names differ,
+# same convention as check_installed.
+#
+# The rest of what init.lua enables is not uv's to install: lua_ls, zls and
+# neocmake ship as their own release binaries, typescript-language-server and
+# powershell_es come from npm and the PowerShellEditorServices bundle, and
+# clangd comes from the distro's clang packages.
+LSP_PIP_PACKAGES=("pyright:pyright-langserver")
+
 function print_info() {
     echo -e "[${CYAN}INFO${RES}] $@"
 }
@@ -358,6 +374,56 @@ function install_deps() {
                           "the output. Exiting.."
                 exit 1
             fi
+        fi
+    done
+}
+
+# Install the python language servers into VENV, creating it first when it is
+# not already there. An existing venv is reused rather than recreated, so
+# anything else the user keeps in it survives a re-run of the installer.
+function setup_lsp_venv() {
+
+    if ! command -v uv &>/dev/null; then
+        print_warn "uv not found on PATH, unable to install the language servers"
+        return 1
+    fi
+
+    if [ -d "${VENV}" ]; then
+        print_info "$(style_path ${VENV}) already exists. $(highlight_text Reusing it..)"
+    else
+        print_info "Attempting to create a virtual environment at $(style_path ${VENV})"
+
+        if uv venv "${VENV}" &>/dev/null; then
+            print_info "....Successfully created $(style_path ${VENV})"
+        else
+            print_err "....Failed to create $(style_path ${VENV})"
+            return 1
+        fi
+    fi
+
+    for lsp in "${LSP_PIP_PACKAGES[@]}"; do
+
+        # Entries may be "package:command", only the package half is installable
+        local pkg="${lsp%%:*}"
+        local cmd="${lsp#*:}"
+
+        # Deliberately a check for the binary in VENV and not on PATH: a
+        # language server installed system wide elsewhere is not the one nvim
+        # will be pointed at here
+        if [ -x "${VENV}/bin/${cmd}" ]; then
+            print_info "$(highlight_text ${pkg}) is already installed in"\
+                       "$(style_path ${VENV}). $(highlight_text Skipping..)"
+            continue
+        fi
+
+        print_info "Attempting to install $(highlight_text ${pkg}) into $(style_path ${VENV})"
+
+        # --python rather than activating the venv, so the environment of the
+        # rest of the script is left exactly as it was found
+        if uv pip install --python "${VENV}" "${pkg}" &>/dev/null; then
+            print_info "....Successfully installed $(highlight_text ${pkg})"
+        else
+            print_warn "....Failed to install $(highlight_text ${pkg})"
         fi
     done
 }
@@ -961,7 +1027,7 @@ function main() {
     # "package:command" where the installed binary is not named after the
     # package, see check_installed
     local deps_mac_only=("coreutils" "binutils" "gnu-sed" "go" "python")
-    local deps_linux_only=("uv" "golang:go")
+    local deps_linux_only=("uv" "golang:go" "fzf" "make" "clang" "clangd")
     local deps_linux_desktop=("i3" "rofi")
     local deps_agnostic=("curl" "zsh" "neovim:nvim" "gpg" "tar")
 
@@ -969,6 +1035,16 @@ function main() {
         deps_mac_only deps_linux_only deps_agnostic
 
     run_desktop_step "Installing" "Dependencies" install_deps deps_linux_desktop
+
+    ###########################################################################
+    #                                                                         #
+    #                    Installing Python Language Servers                   #
+    #                                                                         #
+    ###########################################################################
+
+    print_section "Installing Language Servers"
+
+    setup_lsp_venv
 
     ###########################################################################
     #                                                                         #

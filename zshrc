@@ -91,6 +91,12 @@ fi
 
 PATH=$PATH:/home/min/.gem/bin:/mnt/c/windows/system32/
 
+# The virtual environment install.sh puts the python language servers into, so
+# that nvim finds pyright-langserver without needing an explicit cmd. Appended
+# rather than prepended deliberately: the venv also carries python and python3,
+# and those should stay the system ones outside of an activated environment.
+PATH=$PATH:~/.venv/bin
+
 alias l="ls"
 alias ll="ls -l"
 alias la="ls -A"
