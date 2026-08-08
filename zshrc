@@ -76,6 +76,9 @@ alias clea="clear"
 alias cc="clear && printf '\e[3J'"
 alias celar="clear" 
 
+alias fd='fdfind -ui'
+alias grep='rg -ziL --hidden --no-ignore'
+
 if [[ "$(uname)" = "Darwin" ]]
 then
     alias ls="gls -1c --color -Fv"

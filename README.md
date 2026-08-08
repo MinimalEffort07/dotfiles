@@ -26,6 +26,20 @@ their configs, xrandr, the caps-lock remap):
 ./install.sh --headless
 ```
 
+To undo it, run `clean` from the same directory you installed from (it needs
+`DOTFILES` to match, so it can tell its own symlinks from yours):
+```bash
+./install.sh clean
+```
+
+`clean` removes the symlinks it created, restores any file it backed up when
+installing, removes the directories it created that are still empty, drops the
+`v`/`vi`/`vim` alternatives and the global git identity, and deletes root's
+nvim config, the local config script and the xrandr preferences. It
+deliberately leaves installed packages, repositories cloned into `/opt` and
+your login shell alone. Anything it did not create, or that you have since
+changed, is skipped with a warning rather than removed.
+
 ## What install.sh Sets Up
 
 ### Packages
@@ -57,6 +71,14 @@ stays installed.
 Copied (rsync, root-owned) into `/root/.config/nvim` rather than symlinked,
 so root's editor doesn't execute user-writable config.
 
+### Global git identity
+Sets `user.name` and `user.email` in `~/.gitconfig` to the identity this
+repository's own history commits under (`MinimalEffort07` and the GitHub
+noreply address). An identity already configured on the machine is reported
+and left alone rather than overwritten, so this is safe on a box that also has
+work repositories on it. Change `GIT_NAME`/`GIT_EMAIL` at the top of
+`install.sh` to use a different one.
+
 ### Misc
 - Creates `~/projects/minimaleffort`
 - Creates an empty executable `~/.dotfiles_local_config` for machine-local
@@ -76,8 +98,14 @@ so root's editor doesn't execute user-writable config.
 - Essential steps (package installs, symlinks, directories, shell change)
   abort the script on failure; cosmetic steps (editor alternatives, root nvim
   copy, xrandr, caps-lock) warn and continue.
-- The script is safe to re-run; already-installed packages and existing
-  symlinks/directories are skipped or cleanly replaced.
+- The script is idempotent. Every step checks for the state it is about to
+  create and skips when it is already there, so a second run makes no changes
+  and reports what it skipped. In particular a re-run does not re-take a
+  backup (the original stays the original), does not rewrite `zshrc` when the
+  `DOTFILES` line already points at the repo, does not recreate a symlink that
+  is already correct, and does not call `chsh` when the login shell is already
+  zsh — `chsh` authenticates even when the shell is unchanged, so an unguarded
+  call would make every re-run prompt for a password.
 
 ## No Longer Handled
 Git identity/SSH key setup was removed — the script no longer decrypts a

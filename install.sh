@@ -23,6 +23,12 @@ set -u
 OPTIONS=""
 ARM=""
 HEADLESS=0
+MODE="install"
+
+# Identity applied to the global git config, taken from this repository's commit
+# history so a fresh machine commits under the same name as every other one.
+GIT_NAME="MinimalEffort07"
+GIT_EMAIL="90430937+MinimalEffort07@users.noreply.github.com"
 
 function print_info() {
     echo -e "[${CYAN}INFO${RES}] $@"
@@ -38,6 +44,24 @@ function print_err() {
 
 function print_section() {
     echo -e "[${GREEN}SECTION${RES}] ----- ${GREEN}${@}${RES} -----"
+}
+
+# The login shell recorded for the user. Deliberately not $SHELL, which is
+# inherited from whatever started this process and so still reports the old
+# shell for the rest of the session after chsh has run.
+function login_shell() {
+
+    # id rather than $USER, which is not guaranteed to be exported and would
+    # take the whole script down under set -u
+    local user="$(id -un)"
+
+    if command -v getent &>/dev/null; then
+        getent passwd "${user}" | cut -d: -f7
+    elif command -v dscl &>/dev/null; then
+        dscl . -read "/Users/${user}" UserShell 2>/dev/null | awk '{ print $2 }'
+    else
+        echo "${SHELL:-}"
+    fi
 }
 
 function minimise_path() {
@@ -111,6 +135,15 @@ function create_syms() {
         print_info "Attempting to create symlink,"\
             "$(style_path ${symarr[1]}) $(style_path '->') $(style_path ${symarr[0]})"
 
+        # Already pointing where we want it. Left alone rather than recreated
+        # so a re-run cannot lose the destination in the window between the rm
+        # and the ln below
+        if sudo test -h "${symarr[1]}" &&
+           [ "$(sudo readlink "${symarr[1]}")" = "${symarr[0]}" ]; then
+            print_info "....Symlink already exists. $(highlight_text Skipping..)"
+            continue
+        fi
+
         if sudo [ -e "${symarr[1]}" ] && sudo [ ! -L "${symarr[1]}" ]; then
 
             print_warn "....$(style_path ${symarr[1]}) already exists but is"\
@@ -155,6 +188,75 @@ function create_syms() {
     done
 }
 
+# Put back whatever create_syms displaced. It backs a real file up with
+# --backup=numbered, which renames any previous backup out to .~N~ and leaves
+# the most recent one under the plain .dotfiles.bak name, so that is the one to
+# restore. Earlier backups are left where they are rather than guessed at.
+function restore_backup() {
+
+    local dst="$1"
+    local bak="${dst}.dotfiles.bak"
+
+    sudo test -e "${bak}" || return 0
+
+    if sudo test -e "${dst}"; then
+        print_warn "....$(style_path ${dst}) still exists, refusing to overwrite"\
+                   "it with $(style_path ${bak})"
+        return 0
+    fi
+
+    print_info "....Attempting to restore $(style_path ${bak})"
+
+    if ${MV} "${bak}" "${dst}" &>/dev/null; then
+        print_info "....Successfully restored $(style_path ${dst})"
+    elif sudo ${MV} "${bak}" "${dst}" &>/dev/null; then
+        print_warn "....Successfully restored $(style_path ${dst}). $(highlight_text Required sudo)"
+    else
+        print_warn "....Failed to restore $(style_path ${bak})"
+    fi
+}
+
+# Undo create_syms, taking the same "source destination" pairs. A destination
+# is only removed when it is still a symlink to the source we gave it, so a
+# link the user has since repointed, or a real file that replaced it, is left
+# untouched.
+function remove_syms() {
+
+    for sym in "$@"; do
+        symarr=($sym)
+
+        if sudo test -h "${symarr[1]}"; then
+
+            local target="$(sudo readlink "${symarr[1]}")"
+
+            if [ "${target}" != "${symarr[0]}" ]; then
+                print_warn "$(style_path ${symarr[1]}) points at $(style_path ${target}),"\
+                           "not $(style_path ${symarr[0]}). $(highlight_text Skipping..)"
+                continue
+            fi
+
+            print_info "Attempting to remove symlink $(style_path ${symarr[1]})"
+
+            if rm "${symarr[1]}" &>/dev/null; then
+                print_info "....Successfully removed $(style_path ${symarr[1]})"
+            elif sudo rm "${symarr[1]}" &>/dev/null; then
+                print_warn "....Successfully removed $(style_path ${symarr[1]}). $(highlight_text Required sudo)"
+            else
+                print_err "....Failed to remove $(style_path ${symarr[1]})"
+                continue
+            fi
+
+        elif sudo test -e "${symarr[1]}"; then
+            print_warn "$(style_path ${symarr[1]}) is not a symlink. $(highlight_text Skipping..)"
+            continue
+        else
+            print_info "$(style_path ${symarr[1]}) does not exist. $(highlight_text Skipping..)"
+        fi
+
+        restore_backup "${symarr[1]}"
+    done
+}
+
 # Given a list of directories create them.
 function create_dirs() {
 
@@ -177,46 +279,78 @@ function create_dirs() {
     done
 }
 
-# Given a dependency name, check if it is installed on the system
+# Undo create_dirs. Only empty directories go, anything the user has since put
+# in one is theirs to keep, and rmdir refusing is exactly that signal.
+function remove_dirs() {
+
+    for dir in "$@"; do
+
+        if ! sudo test -d "${dir}"; then
+            print_info "$(style_path ${dir}) does not exist. $(highlight_text Skipping..)"
+            continue
+        fi
+
+        print_info "Attempting to remove $(style_path ${dir})"
+
+        if rmdir "${dir}" &>/dev/null; then
+            print_info "....Successfully removed $(style_path ${dir})"
+        elif sudo rmdir "${dir}" &>/dev/null; then
+            print_warn "....Successfully removed $(style_path ${dir}). $(highlight_text Required sudo)"
+        else
+            print_warn "....$(style_path ${dir}) is not empty. $(highlight_text Skipping..)"
+        fi
+    done
+}
+
+# True when the package manager reports the package $1 as installed. This is
+# the only honest check for conflicts: a command sitting on PATH says nothing
+# about whether the package manager can remove it.
+function check_pkg_installed() {
+
+    if [ "${PCKMAN}" = "brew" ]; then
+        $PCKMAN list -1 2>/dev/null | grep -qE "^$1$"
+    else
+        $PCKMAN list --installed 2>/dev/null | grep -qE "^$1/"
+    fi
+}
+
+# True when a dependency is already satisfied, by the package manager or by the
+# command simply being on PATH.
+#
+# Entries may be written as "package:command" for the cases where the two names
+# differ, since the package name is not usable as a command (the neovim package
+# ships nvim, python3-pip ships pip3). That also lets a hand installed binary
+# count as satisfying the dependency, so a tarball nvim in /usr/local/bin is
+# not quietly shadowed by the distro one. A bare entry uses one name for both.
 function check_installed() {
 
-     if which $1 &>/dev/null; then
-        return 0
-    else
-        if [ "${PCKMAN}" = "brew" ]; then
-            if $PCKMAN list -1 2>/dev/null | grep -E "^$1$" &>/dev/null; then
-                return 0
-            else
-                return 1
-            fi
-        else
-            if $PCKMAN list --installed 2>/dev/null | grep -E "^$1/" &>/dev/null; then
-                return 0
-            else
-                return 1
-            fi
-        fi
-    fi
+    local pkg="${1%%:*}"
+    local cmd="${1#*:}"
+
+    command -v "${cmd}" &>/dev/null || check_pkg_installed "${pkg}"
 }
 
 # Given a list of dependencies, install them using: PCKMAN, OPTIONS
 function install_deps() {
 
     for dep in "$@"; do
+        # Entries may be "package:command", only the package half is installable
+        local pkg="${dep%%:*}"
+
         if check_installed "${dep}"; then
-            print_info "$(highlight_text ${dep}) is already installed. $(highlight_text Skipping..)"
+            print_info "$(highlight_text ${pkg}) is already installed. $(highlight_text Skipping..)"
             continue
         fi
-        print_info "Attempting to install ${dep}"
-        if $PCKMAN install $OPTIONS "${dep}" &>/dev/null; then
-            print_info "Successfully installed $(highlight_text ${dep})"
+        print_info "Attempting to install ${pkg}"
+        if $PCKMAN install $OPTIONS "${pkg}" &>/dev/null; then
+            print_info "Successfully installed $(highlight_text ${pkg})"
         else
             if check_installed "${dep}"; then
                 print_warn "Non terminal issue encountered while installing"\
-                           "$(highlight_text ${dep}), it was still abled to be"\
+                           "$(highlight_text ${pkg}), it was still abled to be"\
                            " installed"
             else
-                print_err "Failed to install $(highlight_text ${dep}), check "\
+                print_err "Failed to install $(highlight_text ${pkg}), check "\
                           "the output. Exiting.."
                 exit 1
             fi
@@ -227,44 +361,69 @@ function install_deps() {
 function uninstall_conflicts() {
 
     for conflict in "$@"; do
-        if ! check_installed "${conflict}"; then
-            print_info "$(highlight_text ${conflict}) is not installed. $(highlight_text Skipping..)"
+        # Deliberately a package check and not check_installed: /usr/bin/vim
+        # exists as an alternatives symlink to nvim, so a command check would
+        # claim the vim package is present and then abort when the package
+        # manager, rightly, refuses to remove something it never installed.
+        local pkg="${conflict%%:*}"
+
+        if ! check_pkg_installed "${pkg}"; then
+            print_info "$(highlight_text ${pkg}) is not installed. $(highlight_text Skipping..)"
             continue
         fi
 
-        print_info "Attempting to uninstall ${conflict}"
+        print_info "Attempting to uninstall ${pkg}"
 
-        if $PCKMAN remove $OPTIONS "${conflict}" &>/dev/null; then
-            print_info "Successfully removed $(highlight_text ${conflict})"
+        if $PCKMAN remove $OPTIONS "${pkg}" &>/dev/null; then
+            print_info "Successfully removed $(highlight_text ${pkg})"
         else
-            if check_installed "${conflict}"; then
+            if check_pkg_installed "${pkg}"; then
                 print_err "Failed to remove conflict. $(emphasize_text Aborting..)"
                 exit 1
             else
-                print_warn "Successfully removed $(highlight_text ${conflict}) with warning from ${PCKMAN}"
+                print_warn "Successfully removed $(highlight_text ${pkg}) with warning from ${PCKMAN}"
             fi
         fi
     done
 }
 
-# Point the given command names at nvim using the alternatives system
+# Point the given command names at nvim using the alternatives system.
+#
+# Alternatives are keyed on the target path, not on who registered them, so a
+# registration made against a since removed nvim (the distro package replaced
+# by a tarball build, say) survives as a candidate pointing at nothing, and
+# removing that package takes our registration with it. Every stale candidate
+# is therefore dropped before the current path is installed.
 function setup_editor_alternatives() {
 
-    local nvim_path="$(which nvim)"
+    local nvim_path
+    nvim_path="$(command -v nvim || true)"
 
-    if [ -z "${nvim_path}" ]; then
-        print_warn "nvim not found, unable to set up editor alternatives"
+    if [ ! -x "${nvim_path}" ]; then
+        print_warn "nvim not found on PATH, unable to set up editor alternatives"
         return 1
     fi
 
     for name in "$@"; do
         print_info "Attempting to point $(highlight_text ${name}) at $(style_path ${nvim_path})"
 
-        if sudo update-alternatives --install "/usr/bin/${name}" "${name}" "${nvim_path}" 60 &>/dev/null &&
-           sudo update-alternatives --set "${name}" "${nvim_path}" &>/dev/null; then
+        # --query prints one "Alternative: <path>" line per registered
+        # candidate. It only reads the admin directory, so it needs no sudo.
+        local candidate
+        while read -r candidate; do
+            [ -x "${candidate}" ] && continue
+            print_info "....Dropping stale candidate $(style_path ${candidate})"
+            sudo update-alternatives --remove "${name}" "${candidate}" &>/dev/null || true
+        done < <(update-alternatives --query "${name}" 2>/dev/null |
+                 awk '/^Alternative: /{ print $2 }')
+
+        # Keep stderr, discard stdout, so a failure can say why it failed.
+        local err
+        if err="$(sudo update-alternatives --install "/usr/bin/${name}" "${name}" "${nvim_path}" 60 2>&1 >/dev/null)" &&
+           err="$(sudo update-alternatives --set "${name}" "${nvim_path}" 2>&1 >/dev/null)"; then
             print_info "....Successfully pointed $(highlight_text ${name}) at nvim"
         else
-            print_warn "....Failed to point $(highlight_text ${name}) at nvim"
+            print_warn "....Failed to point $(highlight_text ${name}) at nvim: ${err}"
         fi
     done
 }
@@ -274,6 +433,139 @@ function setup_editor_alternatives() {
 # ${...+...} guard keeps set -u happy when the source array is empty.
 function copy_array() {
     eval "$2=(\${$1[@]+\"\${$1[@]}\"})"
+}
+
+# Undo setup_editor_alternatives by dropping every nvim candidate from the
+# named groups. One rule covers both cases: a group the installer invented
+# outright (v) loses its only candidate and update-alternatives tears the whole
+# group down, link included, while a group the distro also owns (vi, vim) is
+# left with the packaged vim to fall back onto.
+function remove_editor_alternatives() {
+
+    for name in "$@"; do
+        print_info "Attempting to unregister $(highlight_text ${name}) from update-alternatives"
+
+        local candidate found=0
+        while read -r candidate; do
+
+            # Match on the binary name, not on a path, so a candidate left by
+            # an nvim that has since moved is cleaned up too
+            [ "$(basename "${candidate}")" = "nvim" ] || continue
+            found=1
+
+            local err
+            if err="$(sudo update-alternatives --remove "${name}" "${candidate}" 2>&1 >/dev/null)"; then
+                print_info "....Dropped candidate $(style_path ${candidate})"
+            else
+                print_warn "....Failed to drop candidate $(style_path ${candidate}): ${err}"
+            fi
+
+        done < <(update-alternatives --query "${name}" 2>/dev/null |
+                 awk '/^Alternative: /{ print $2 }')
+
+        if [ "${found}" -eq 0 ]; then
+            print_info "....No nvim candidates registered. $(highlight_text Skipping..)"
+        fi
+
+        # A group whose candidates have all gone takes its link with it, but a
+        # link left dangling by an nvim removed from under it does not belong
+        # to any group any more and has to be unpicked by hand
+        if ! update-alternatives --query "${name}" &>/dev/null &&
+           [ -L "/usr/bin/${name}" ] && [ ! -e "/usr/bin/${name}" ]; then
+            print_info "....Attempting to remove dangling link $(style_path /usr/bin/${name})"
+            if sudo rm "/usr/bin/${name}" &>/dev/null; then
+                print_info "....Successfully removed $(style_path /usr/bin/${name})"
+            else
+                print_warn "....Failed to remove $(style_path /usr/bin/${name})"
+            fi
+        fi
+    done
+}
+
+# Set one global git config key, leaving a value that is already there alone.
+# Overwriting silently would be the wrong call on a machine that also has work
+# repositories on it, so a value we did not set is reported and kept.
+function set_git_config() {
+
+    local key="$1"
+    local value="$2"
+    local current
+
+    current="$(git config --global --get "${key}" 2>/dev/null || true)"
+
+    if [ "${current}" = "${value}" ]; then
+        print_info "Global $(highlight_text ${key}) is already"\
+                   "$(highlight_text ${value}). $(highlight_text Skipping..)"
+        return 0
+    fi
+
+    if [ -n "${current}" ]; then
+        print_warn "Global $(highlight_text ${key}) is already set to"\
+                   "$(highlight_text ${current}). $(highlight_text Leaving it alone..)"
+        return 0
+    fi
+
+    print_info "Attempting to set global $(highlight_text ${key}) to $(highlight_text ${value})"
+
+    if git config --global "${key}" "${value}" &>/dev/null; then
+        print_info "....Successfully set $(highlight_text ${key})"
+    else
+        print_warn "....Failed to set $(highlight_text ${key})"
+    fi
+}
+
+# Undo set_git_config, but only where the value is still the one we set, so an
+# identity changed since installing is left in place.
+function unset_git_config() {
+
+    local key="$1"
+    local value="$2"
+    local current
+
+    current="$(git config --global --get "${key}" 2>/dev/null || true)"
+
+    if [ -z "${current}" ]; then
+        print_info "Global $(highlight_text ${key}) is not set. $(highlight_text Skipping..)"
+        return 0
+    fi
+
+    if [ "${current}" != "${value}" ]; then
+        print_warn "Global $(highlight_text ${key}) is $(highlight_text ${current}),"\
+                   "not ours. $(highlight_text Skipping..)"
+        return 0
+    fi
+
+    print_info "Attempting to unset global $(highlight_text ${key})"
+
+    if git config --global --unset "${key}" &>/dev/null; then
+        print_info "....Successfully unset $(highlight_text ${key})"
+    else
+        print_warn "....Failed to unset $(highlight_text ${key})"
+    fi
+}
+
+# Apply GIT_NAME and GIT_EMAIL to the global git config.
+function setup_git_identity() {
+
+    if ! command -v git &>/dev/null; then
+        print_warn "git not found on PATH, unable to set up the git identity"
+        return 1
+    fi
+
+    set_git_config user.name "${GIT_NAME}"
+    set_git_config user.email "${GIT_EMAIL}"
+}
+
+# Undo setup_git_identity.
+function remove_git_identity() {
+
+    if ! command -v git &>/dev/null; then
+        print_warn "git not found on PATH, unable to remove the git identity"
+        return 1
+    fi
+
+    unset_git_config user.name "${GIT_NAME}"
+    unset_git_config user.email "${GIT_EMAIL}"
 }
 
 # Dispatch a step over the platform agnostic array and the array matching the
@@ -326,6 +618,116 @@ function run_desktop_step() {
     fi
 }
 
+# The directories and symlinks the installer owns. Both the install and the
+# clean paths read these, so they are declared once here rather than inline,
+# otherwise clean drifts out of step with install the first time a config file
+# is added. DOTFILES has to be set before this is called.
+function declare_file_targets() {
+
+    dirs_mac_only=()
+    dirs_linux_only=()
+    dirs_linux_desktop=("${HOME}/.config/i3"
+                        "/etc/i3"
+                        "${HOME}/.config/rofi")
+
+    # ~/.config is where the nvim symlink goes, and a fresh machine that has
+    # never run a program which uses it will not have one
+    dirs_agnostic=("${HOME}/.config"
+                   "${HOME}/projects/minimaleffort")
+
+    # Each entry is a space separated "source destination" pair, split inside
+    # create_syms. Double quotes here prevent premature splitting.
+    syms_mac_only=("/usr/local/bin/nvim /usr/local/bin/vim")
+    syms_linux_only=("${DOTFILES}/nvim ${HOME}/.config/nvim")
+    syms_linux_desktop=("${DOTFILES}/i3_config ${HOME}/.config/i3/config"
+                        "${DOTFILES}/i3_config /etc/i3/config"
+                        "${DOTFILES}/config.rasi ${HOME}/.config/rofi/config.rasi"
+                        "${DOTFILES}/xmodmapmappings ${HOME}/.config/i3/xmodmapmappings")
+
+    syms_agnostic=("${DOTFILES}/zshrc ${HOME}/.zshrc"
+                   "${DOTFILES}/gdbinit ${HOME}/.gdbinit")
+}
+
+# Remove the files and configuration the installer put on the system, in the
+# reverse order it created them. Deliberately not undone: installed packages,
+# repositories cloned into /opt, and the login shell, all of which are shared
+# system state that the user may well want regardless of these dotfiles.
+function clean_dotfiles() {
+
+    print_section "Removing Symlinks"
+
+    run_platform_step "Removing" "Symlinks" remove_syms \
+        syms_mac_only syms_linux_only syms_agnostic
+
+    run_desktop_step "Removing" "Symlinks" remove_syms syms_linux_desktop
+
+    print_section "Removing Directories"
+
+    run_platform_step "Removing" "Directories" remove_dirs \
+        dirs_mac_only dirs_linux_only dirs_agnostic
+
+    run_desktop_step "Removing" "Directories" remove_dirs dirs_linux_desktop
+
+    print_section "Removing Configuration"
+
+    if [ "$OS" = "Linux" ]; then
+        print_info "$(emphasize_text Unpointing v, vi and vim from nvim via update-alternatives)"
+        remove_editor_alternatives v vi vim
+
+        print_info "$(emphasize_text Removing root nvim config at $(style_path /root/.config/nvim))"
+        if ! sudo test -e /root/.config/nvim; then
+            print_info "....$(style_path /root/.config/nvim) does not exist. $(highlight_text Skipping..)"
+        elif sudo rm -rf /root/.config/nvim &>/dev/null; then
+            print_info "....Successfully removed $(style_path /root/.config/nvim)"
+        else
+            print_warn "....Failed to remove $(style_path /root/.config/nvim)"
+        fi
+    fi
+
+    print_info "$(emphasize_text Removing the global git identity)"
+    remove_git_identity
+
+    # The zshrc backup is made by the DOTFILES sed, not by create_syms, so it
+    # lives in the repo rather than beside a symlink destination
+    remove_files "${DOTFILES}/zshrc.dotfiles.bak" \
+                 "${HOME}/.dotfiles_local_config" \
+                 "${HOME}/.xrandr_preferences.sh"
+}
+
+# Remove the given files if they are present.
+function remove_files() {
+
+    for file in "$@"; do
+
+        if [ ! -e "${file}" ]; then
+            print_info "$(style_path ${file}) does not exist. $(highlight_text Skipping..)"
+            continue
+        fi
+
+        print_info "Attempting to remove $(style_path ${file})"
+
+        if rm "${file}" &>/dev/null; then
+            print_info "....Successfully removed $(style_path ${file})"
+        elif sudo rm "${file}" &>/dev/null; then
+            print_warn "....Successfully removed $(style_path ${file}). $(highlight_text Required sudo)"
+        else
+            print_warn "....Failed to remove $(style_path ${file})"
+        fi
+    done
+}
+
+function usage() {
+
+    echo "Usage: $0 [install|clean] [--headless]"
+    echo
+    echo "  install    install packages and link configuration (the default)"
+    echo "  clean      remove the files and configuration install created,"
+    echo "             restoring any backups it took. Leaves installed"
+    echo "             packages, /opt repositories and the login shell alone."
+    echo
+    echo "  --headless skip the linux desktop only steps"
+}
+
 function main() {
 
     ###########################################################################
@@ -336,12 +738,19 @@ function main() {
 
     for arg in "$@"; do
         case "${arg}" in
+            install|clean)
+                MODE="${arg}"
+                ;;
             --headless)
                 HEADLESS=1
                 ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
             *)
                 print_err "Unknown argument: $(highlight_text ${arg})"
-                echo "Usage: $0 [--headless]"
+                usage
                 exit 1
                 ;;
         esac
@@ -373,6 +782,22 @@ function main() {
 
     print_info "OS is: $(highlight_text ${OS})"
     print_info "Using $(highlight_text ${PCKMAN}) package manager"
+
+    # Set here rather than in the section below because both modes need it, and
+    # clean must not fall through to that section's edit of zshrc
+    export DOTFILES="$(pwd)"
+    declare_file_targets
+
+    ###########################################################################
+    #                                                                         #
+    #                Removing Files And Configuration (clean)                 #
+    #                                                                         #
+    ###########################################################################
+
+    if [ "${MODE}" = "clean" ]; then
+        clean_dotfiles
+        exit 0
+    fi
 
     ###########################################################################
     #                                                                         #
@@ -415,10 +840,12 @@ function main() {
 
     print_section "Installing Dependencies"
 
+    # "package:command" where the installed binary is not named after the
+    # package, see check_installed
     local deps_mac_only=("coreutils" "binutils" "gnu-sed" "go" "python")
-    local deps_linux_only=("python3-pip" "golang")
+    local deps_linux_only=("python3-pip:pip3" "golang:go")
     local deps_linux_desktop=("i3" "rofi")
-    local deps_agnostic=("curl" "zsh" "neovim" "gpg" "tar")
+    local deps_agnostic=("curl" "zsh" "neovim:nvim" "gpg" "tar")
 
     run_platform_step "Installing" "Dependencies" install_deps \
         deps_mac_only deps_linux_only deps_agnostic
@@ -461,11 +888,15 @@ function main() {
 
     print_section "Setting up DOTFILES Environment Variable"
 
-    export DOTFILES="$(pwd)"
     print_info "DOTFILES=$(style_path ${DOTFILES})"
     print_info "Attempting to update DOTFILES variable in zshrc"
 
-    if sed -E -i.dotfiles.bak s@DOTFILES=.\*@DOTFILES=\"$(minimise_path ${DOTFILES})\"@g "${DOTFILES}/zshrc"; then
+    # Skipped when it already reads correctly, otherwise every re-run would
+    # clobber zshrc.dotfiles.bak with an already rewritten zshrc, losing the
+    # only copy of the original
+    if grep -qF "DOTFILES=\"$(minimise_path ${DOTFILES})\"" "${DOTFILES}/zshrc"; then
+        print_info "zshrc already points at $(style_path ${DOTFILES}). $(highlight_text Skipping..)"
+    elif sed -E -i.dotfiles.bak s@DOTFILES=.\*@DOTFILES=\"$(minimise_path ${DOTFILES})\"@g "${DOTFILES}/zshrc"; then
         print_info "Successfully updated DOTFILES environment variable in zshrc"
     else
         print_err "Failed to updated DOTFILES environment variable in zshrc"
@@ -480,14 +911,6 @@ function main() {
 
     print_section "Creating Directories"
 
-    local dirs_mac_only=()
-    local dirs_linux_only=()
-    local dirs_linux_desktop=("${HOME}/.config/i3"
-                              "/etc/i3"
-                              "${HOME}/.config/rofi")
-
-    local dirs_agnostic=("${HOME}/projects/minimaleffort")
-
     run_platform_step "Creating" "Directories" create_dirs \
         dirs_mac_only dirs_linux_only dirs_agnostic
 
@@ -500,18 +923,6 @@ function main() {
     ###########################################################################
 
     print_section "Creating Symlinks"
-
-    # Each entry is a space separated "source destination" pair, split inside
-    # create_syms. Double quotes here prevent premature splitting.
-    local syms_mac_only=("/usr/local/bin/nvim /usr/local/bin/vim")
-    local syms_linux_only=("${DOTFILES}/nvim ${HOME}/.config/nvim")
-    local syms_linux_desktop=("${DOTFILES}/i3_config ${HOME}/.config/i3/config"
-                              "${DOTFILES}/i3_config /etc/i3/config"
-                              "${DOTFILES}/config.rasi ${HOME}/.config/rofi/config.rasi"
-                              "${DOTFILES}/xmodmapmappings ${HOME}/.config/i3/xmodmapmappings")
-
-    local syms_agnostic=("${DOTFILES}/zshrc ${HOME}/.zshrc"
-                         "${DOTFILES}/gdbinit ${HOME}/.gdbinit")
 
     run_platform_step "Creating" "Symlinks" create_syms \
         syms_mac_only syms_linux_only syms_agnostic
@@ -556,6 +967,15 @@ function main() {
             fi
         fi
     fi
+
+    ###########################################################################
+    #                                                                         #
+    #                    Configuring Global Git Identity                      #
+    #                                                                         #
+    ###########################################################################
+
+    print_info "$(emphasize_text Setting the global git identity)"
+    setup_git_identity
 
     ###########################################################################
     #                                                                         #
@@ -623,7 +1043,19 @@ function main() {
     ###########################################################################
 
     print_info "$(emphasize_text Changing Default Shell To Zsh)"
-    if chsh -s "$(which zsh)"; then
+
+    local zsh_path
+    zsh_path="$(command -v zsh || true)"
+
+    if [ ! -x "${zsh_path}" ]; then
+        print_err "zsh not found on PATH, unable to change the default shell. Aborting"
+        exit 1
+    # chsh authenticates even when the shell is already what was asked for, so
+    # an unguarded call turns every re-run into a password prompt that aborts
+    # the script when declined
+    elif [ "$(login_shell)" = "${zsh_path}" ]; then
+        print_info "Default shell is already $(highlight_text ${zsh_path}). $(highlight_text Skipping..)"
+    elif chsh -s "${zsh_path}"; then
         print_info "Successfully changed default shell to $(highlight_text zsh)"
     else
         print_err "Failed to change default shell to $(highlight_text zsh). Aborting"
