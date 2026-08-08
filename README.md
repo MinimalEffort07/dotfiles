@@ -34,8 +34,9 @@ To undo it, run `clean` from the same directory you installed from (it needs
 
 `clean` removes the symlinks it created, restores any file it backed up when
 installing, removes the directories it created that are still empty, drops the
-`v`/`vi`/`vim` alternatives and the global git identity, and deletes root's
-nvim config, the local config script and the xrandr preferences. It
+`v`/`vi`/`vim` alternatives and the global git identity, points this
+repository's `origin` remote back at HTTPS, and deletes root's nvim config,
+the local config script and the xrandr preferences. It
 deliberately leaves installed packages, repositories cloned into `/opt` and
 your login shell alone. Anything it did not create, or that you have since
 changed, is skipped with a warning rather than removed.
@@ -79,6 +80,16 @@ and left alone rather than overwritten, so this is safe on a box that also has
 work repositories on it. Change `GIT_NAME`/`GIT_EMAIL` at the top of
 `install.sh` to use a different one.
 
+### SSH remote
+Rewrites this repository's `origin` remote from its HTTPS URL to the
+equivalent SSH one (`https://host/owner/repo.git` ->
+`git@host:owner/repo.git`), so pushes from the checkout authenticate with the
+machine's key rather than prompting for a password or token. A remote that is
+already SSH is skipped, and one on neither scheme is reported and left alone.
+The machine still needs a key GitHub knows about — the script does not
+generate or install one. `clean` puts the remote back on HTTPS. Set
+`GIT_REMOTE` at the top of `install.sh` to rewrite a differently named remote.
+
 ### Misc
 - Creates `~/projects/minimaleffort`
 - Creates an empty executable `~/.dotfiles_local_config` for machine-local
@@ -106,10 +117,6 @@ work repositories on it. Change `GIT_NAME`/`GIT_EMAIL` at the top of
   is already correct, and does not call `chsh` when the login shell is already
   zsh — `chsh` authenticates even when the shell is unchanged, so an unguarded
   call would make every re-run prompt for a password.
-
-## No Longer Handled
-Git identity/SSH key setup was removed — the script no longer decrypts a
-gitconfig bundle; set up git config and SSH keys manually per machine.
 
 ## Notes
 

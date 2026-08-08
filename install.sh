@@ -30,6 +30,10 @@ MODE="install"
 GIT_NAME="MinimalEffort07"
 GIT_EMAIL="90430937+MinimalEffort07@users.noreply.github.com"
 
+# The remote of this repository that is switched from HTTPS to SSH on install
+# and back again on clean.
+GIT_REMOTE="origin"
+
 function print_info() {
     echo -e "[${CYAN}INFO${RES}] $@"
 }
@@ -568,6 +572,117 @@ function remove_git_identity() {
     unset_git_config user.email "${GIT_EMAIL}"
 }
 
+# https://host/owner/repo.git -> git@host:owner/repo.git. Echoes the URL
+# unchanged when it does not match, so the caller can tell the rewrite failed.
+function https_to_ssh_url() {
+    sed -E 's|^https://([^/]+)/(.+)$|git@\1:\2|' <<< "$1"
+}
+
+# git@host:owner/repo.git -> https://host/owner/repo.git, the inverse of the
+# above and subject to the same convention on no match.
+function ssh_to_https_url() {
+    sed -E 's|^git@([^:]+):(.+)$|https://\1/\2|' <<< "$1"
+}
+
+# Echo this repository's GIT_REMOTE URL, or nothing at all when git is missing,
+# DOTFILES is not a checkout, or there is no such remote. Every case is reported
+# by the caller rather than here, so the two callers can word it themselves.
+function remote_url() {
+
+    if ! command -v git &>/dev/null; then
+        return 1
+    fi
+
+    if ! git -C "${DOTFILES}" rev-parse --is-inside-work-tree &>/dev/null; then
+        return 1
+    fi
+
+    git -C "${DOTFILES}" remote get-url "${GIT_REMOTE}" 2>/dev/null || return 1
+}
+
+# Point GIT_REMOTE at its SSH URL, so pushes from this checkout authenticate
+# with the machine's key instead of prompting for a password (or a token) over
+# HTTPS. A remote that is already SSH, or that is on neither scheme we know how
+# to rewrite, is left alone.
+function setup_ssh_remote() {
+
+    local current ssh_url
+
+    if ! current="$(remote_url)"; then
+        print_warn "No $(highlight_text ${GIT_REMOTE}) remote found in"\
+                   "$(style_path ${DOTFILES}). $(highlight_text Skipping..)"
+        return 0
+    fi
+
+    case "${current}" in
+        git@*|ssh://*)
+            print_info "$(highlight_text ${GIT_REMOTE}) is already SSH"\
+                       "($(highlight_text ${current})). $(highlight_text Skipping..)"
+            return 0
+            ;;
+        https://*)
+            ;;
+        *)
+            print_warn "$(highlight_text ${GIT_REMOTE}) is $(highlight_text ${current}),"\
+                       "which is neither HTTPS nor SSH. $(highlight_text Leaving it alone..)"
+            return 0
+            ;;
+    esac
+
+    ssh_url="$(https_to_ssh_url "${current}")"
+
+    if [ "${ssh_url}" = "${current}" ]; then
+        print_warn "Unable to derive an SSH URL from $(highlight_text ${current})."\
+                   "$(highlight_text Leaving it alone..)"
+        return 0
+    fi
+
+    print_info "Attempting to point $(highlight_text ${GIT_REMOTE}) at $(highlight_text ${ssh_url})"
+
+    if git -C "${DOTFILES}" remote set-url "${GIT_REMOTE}" "${ssh_url}" &>/dev/null; then
+        print_info "....Successfully switched $(highlight_text ${GIT_REMOTE}) to SSH"
+    else
+        print_warn "....Failed to switch $(highlight_text ${GIT_REMOTE}) to SSH"
+    fi
+}
+
+# Undo setup_ssh_remote by putting GIT_REMOTE back on HTTPS. An SSH remote is
+# indistinguishable from one the user configured themselves, so unlike the git
+# identity this cannot check that the value is ours; it is reversing a rewrite
+# that install always makes, and the URL still names the same repository.
+function remove_ssh_remote() {
+
+    local current https_url
+
+    if ! current="$(remote_url)"; then
+        print_warn "No $(highlight_text ${GIT_REMOTE}) remote found in"\
+                   "$(style_path ${DOTFILES}). $(highlight_text Skipping..)"
+        return 0
+    fi
+
+    if [ "${current#git@}" = "${current}" ]; then
+        print_info "$(highlight_text ${GIT_REMOTE}) is $(highlight_text ${current}),"\
+                   "not one we rewrote. $(highlight_text Skipping..)"
+        return 0
+    fi
+
+    https_url="$(ssh_to_https_url "${current}")"
+
+    if [ "${https_url}" = "${current}" ]; then
+        print_warn "Unable to derive an HTTPS URL from $(highlight_text ${current})."\
+                   "$(highlight_text Leaving it alone..)"
+        return 0
+    fi
+
+    print_info "Attempting to point $(highlight_text ${GIT_REMOTE}) back at $(highlight_text ${https_url})"
+
+    if git -C "${DOTFILES}" remote set-url "${GIT_REMOTE}" "${https_url}" &>/dev/null; then
+        print_info "....Successfully switched $(highlight_text ${GIT_REMOTE}) to HTTPS"
+    else
+        print_warn "....Failed to switch $(highlight_text ${GIT_REMOTE}) to HTTPS"
+    fi
+}
+
 # Dispatch a step over the platform agnostic array and the array matching the
 # current OS. Takes a verb ("Installing"), a noun ("Dependencies"), a function
 # name and the NAMES of the mac only, linux only and agnostic arrays.
@@ -686,6 +801,9 @@ function clean_dotfiles() {
 
     print_info "$(emphasize_text Removing the global git identity)"
     remove_git_identity
+
+    print_info "$(emphasize_text Pointing the ${GIT_REMOTE} remote back at HTTPS)"
+    remove_ssh_remote
 
     # The zshrc backup is made by the DOTFILES sed, not by create_syms, so it
     # lives in the repo rather than beside a symlink destination
@@ -976,6 +1094,15 @@ function main() {
 
     print_info "$(emphasize_text Setting the global git identity)"
     setup_git_identity
+
+    ###########################################################################
+    #                                                                         #
+    #                Switching This Repository's Remote To SSH                #
+    #                                                                         #
+    ###########################################################################
+
+    print_info "$(emphasize_text Pointing the ${GIT_REMOTE} remote at SSH)"
+    setup_ssh_remote
 
     ###########################################################################
     #                                                                         #
